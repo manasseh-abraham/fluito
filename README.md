@@ -166,3 +166,4 @@ The app uses SQLite with the following main tables:
 ## License
 
 MIT
+

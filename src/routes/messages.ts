@@ -2,7 +2,12 @@ import { Hono } from 'hono';
 import { db } from '../db/database';
 import { authMiddleware } from '../middleware/auth';
 
-export const messageRoutes = new Hono();
+type Variables = {
+  userId: number;
+  user: { id: number; email: string };
+};
+
+export const messageRoutes = new Hono<{ Variables: Variables }>();
 
 // Apply auth middleware to all routes
 messageRoutes.use('/*', authMiddleware);

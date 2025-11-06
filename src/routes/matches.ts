@@ -2,7 +2,12 @@ import { Hono } from 'hono';
 import { db } from '../db/database';
 import { authMiddleware } from '../middleware/auth';
 
-export const matchRoutes = new Hono();
+type Variables = {
+  userId: number;
+  user: { id: number; email: string };
+};
+
+export const matchRoutes = new Hono<{ Variables: Variables }>();
 
 // Apply auth middleware to all routes
 matchRoutes.use('/*', authMiddleware);
@@ -123,17 +128,58 @@ matchRoutes.post('/swipe', async (c) => {
     const existingMatch = db
       .prepare(
         `
-      SELECT * FROM matches 
+      SELECT id, user1_id, user2_id, status, created_at, updated_at FROM matches 
       WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)
     `
       )
       .get(userId, target_user_id, target_user_id, userId) as any;
 
+    // If match exists, handle it based on status
     if (existingMatch) {
-      return c.json({ error: 'Match already exists' }, 400);
+      // Get status and normalize it (handle any case/whitespace issues)
+      const rawStatus = existingMatch.status;
+      const status = rawStatus ? String(rawStatus).trim().toLowerCase() : '';
+      
+      // If match is already matched or rejected, return error
+      if (status === 'matched' || status === 'rejected' || status === 'blocked') {
+        return c.json({ error: 'Match already exists' }, 400);
+      }
+      
+      // If match is pending and this is a like, create mutual match
+      if (status === 'pending' && action === 'like') {
+        // Both users like each other - create a match!
+        db.prepare(
+          `
+          UPDATE matches 
+          SET status = 'matched', updated_at = CURRENT_TIMESTAMP
+          WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)
+        `
+        ).run(userId, target_user_id, target_user_id, userId);
+
+        return c.json({
+          message: 'It\'s a match!',
+          matched: true,
+        });
+      }
+      
+      // If match is pending and this is a reject, update to rejected
+      if (status === 'pending' && action === 'reject') {
+        db.prepare(
+          `
+          UPDATE matches 
+          SET status = 'rejected', updated_at = CURRENT_TIMESTAMP
+          WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)
+        `
+        ).run(userId, target_user_id, target_user_id, userId);
+
+        return c.json({
+          message: 'Rejection recorded',
+          matched: false,
+        });
+      }
     }
 
-    // Create match record
+    // Create new match record
     const status = action === 'like' ? 'pending' : 'rejected';
     const insertMatch = db.prepare(`
       INSERT INTO matches (user1_id, user2_id, status)
@@ -141,7 +187,7 @@ matchRoutes.post('/swipe', async (c) => {
     `);
     insertMatch.run(userId, target_user_id, status);
 
-    // If both users liked each other, create a match
+    // If this is a like, check if the other user already liked this user
     if (action === 'like') {
       const mutualLike = db
         .prepare(

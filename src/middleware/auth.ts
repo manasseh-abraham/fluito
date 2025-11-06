@@ -2,7 +2,12 @@ import { Context, Next } from 'hono';
 import { verifyToken, extractTokenFromHeader } from '../utils/auth';
 import { db } from '../db/database';
 
-export async function authMiddleware(c: Context, next: Next) {
+type Variables = {
+  userId: number;
+  user: { id: number; email: string };
+};
+
+export async function authMiddleware(c: Context<{ Variables: Variables }>, next: Next) {
   const authHeader = c.req.header('Authorization');
   const token = extractTokenFromHeader(authHeader);
 
