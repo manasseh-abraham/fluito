@@ -260,3 +260,32 @@ matchRoutes.get('/matches', (c) => {
   return c.json({ matches, count: matches.length });
 });
 
+// Unmatch a user
+matchRoutes.post('/unmatch', async (c) => {
+  try {
+    const userId = c.get('userId') as number;
+    const body = await c.req.json();
+    const { match_id } = body;
+
+    if (!match_id) {
+      return c.json({ error: 'Match ID is required' }, 400);
+    }
+
+    // Verify user is part of this match
+    const match = db
+      .prepare('SELECT * FROM matches WHERE id = ? AND (user1_id = ? OR user2_id = ?) AND status = "matched"')
+      .get(match_id, userId, userId) as any;
+
+    if (!match) {
+      return c.json({ error: 'Match not found' }, 404);
+    }
+
+    // Update match status to rejected (soft unmatch)
+    db.prepare('UPDATE matches SET status = "rejected", updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(match_id);
+
+    return c.json({ message: 'Unmatched successfully' });
+  } catch (error: any) {
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+

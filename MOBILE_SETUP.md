@@ -146,7 +146,7 @@ class ApiService {
 
 ### Development
 ```env
-PORT=3000
+PORT=4000
 JWT_SECRET=dev-secret-key
 DATABASE_PATH=./fluito.db
 NODE_ENV=development
@@ -154,7 +154,7 @@ NODE_ENV=development
 
 ### Production
 ```env
-PORT=3000
+PORT=4000
 JWT_SECRET=your-strong-production-secret
 DATABASE_PATH=/var/lib/fluito/fluito.db
 NODE_ENV=production

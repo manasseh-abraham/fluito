@@ -1,6 +1,6 @@
 # Fluito API Documentation
 
-Base URL: `http://localhost:3000/api`
+Base URL: `http://localhost:4000/api`
 
 All authenticated endpoints require a JWT token in the Authorization header:
 ```

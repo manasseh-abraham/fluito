@@ -1,6 +1,6 @@
 # Fluito - Christian Pentecostal Dating App
 
-A dating app specifically designed for Christian Pentecostals, built with BunJS for the MVP.
+A dating app specifically designed for Christian Pentecostals, built with BunJS for the backend MVP and Vite + React for the frontend.
 
 ## Features
 
@@ -13,12 +13,20 @@ A dating app specifically designed for Christian Pentecostals, built with BunJS 
 
 ## Tech Stack
 
+### Backend
 - **Runtime**: BunJS
 - **Framework**: Hono (lightweight web framework)
-- **Database**: SQLite (better-sqlite3)
+- **Database**: SQLite (bun:sqlite)
 - **Authentication**: JWT tokens
 - **Validation**: Zod
 - **Password Hashing**: bcryptjs
+
+### Frontend
+- **Build Tool**: Vite
+- **Framework**: React 19 with TypeScript
+- **Routing**: React Router
+- **HTTP Client**: Axios
+- **Styling**: CSS with Glassmorphism design
 
 ## Getting Started
 
@@ -49,12 +57,24 @@ Edit `.env` and set your `JWT_SECRET` and other configuration values.
 4. Initialize the database:
 The database will be automatically created when you start the server.
 
-5. Start the development server:
+5. Install frontend dependencies:
+```bash
+cd frontend && npm install && cd ..
+```
+
+6. Start the development server:
 ```bash
 bun run dev
 ```
 
-The API will be available at `http://localhost:3000`
+This will:
+- Build the Vite frontend
+- Start the BunJS backend server
+- Serve both the API and the frontend UI
+
+The app will be available at `http://localhost:4000`
+
+**Note:** The frontend is built and served from the BunJS server. For frontend-only development with hot reload, you can run `cd frontend && npm run dev` separately (this will run on port 5173).
 
 ## API Endpoints
 
@@ -87,7 +107,7 @@ The API will be available at `http://localhost:3000`
 ### Register
 
 ```bash
-curl -X POST http://localhost:3000/api/auth/register \
+curl -X POST http://localhost:4000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
@@ -102,7 +122,7 @@ curl -X POST http://localhost:3000/api/auth/register \
 ### Login
 
 ```bash
-curl -X POST http://localhost:3000/api/auth/login \
+curl -X POST http://localhost:4000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
@@ -113,7 +133,7 @@ curl -X POST http://localhost:3000/api/auth/login \
 ### Update Profile
 
 ```bash
-curl -X PATCH http://localhost:3000/api/profiles/me \
+curl -X PATCH http://localhost:4000/api/profiles/me \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
@@ -128,14 +148,14 @@ curl -X PATCH http://localhost:3000/api/profiles/me \
 ### Discover Matches
 
 ```bash
-curl -X GET http://localhost:3000/api/matches/discover \
+curl -X GET http://localhost:4000/api/matches/discover \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
 ### Swipe
 
 ```bash
-curl -X POST http://localhost:3000/api/matches/swipe \
+curl -X POST http://localhost:4000/api/matches/swipe \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
