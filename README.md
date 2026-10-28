@@ -1,6 +1,6 @@
 # Fluito - Christian Pentecostal Dating App
 
-A dating app specifically designed for Christian Pentecostals, built with BunJS for the backend MVP and Vite + React for the frontend.
+A dating app specifically designed for Christian Pentecostals, built with BunJS for the backend MVP, Vite + React for the web frontend, and Flutter for Android.
 
 ## Features
 
@@ -21,12 +21,17 @@ A dating app specifically designed for Christian Pentecostals, built with BunJS 
 - **Validation**: Zod
 - **Password Hashing**: bcryptjs
 
-### Frontend
+### Frontend (web)
 - **Build Tool**: Vite
 - **Framework**: React 19 with TypeScript
 - **Routing**: React Router
 - **HTTP Client**: Axios
-- **Styling**: CSS with Glassmorphism design
+- **Styling**: CSS with Glassmorphism design (source of the in-repo “Liquid Glass” look)
+
+### Mobile (Android)
+- **Framework**: Flutter (`mobile/`)
+- **Application id**: `co.iotready.fluito` (dev flavor: `co.iotready.fluito.dev`)
+- **API host**: compile-time `--dart-define=API_BASE_URL` (defaults to the **dev** server `http://10.0.2.2:4000` for the Android emulator). Production URL is TBD.
 
 ## Getting Started
 
@@ -174,10 +179,26 @@ The app uses SQLite with the following main tables:
 - `matches` - Match records (pending, matched, rejected, blocked)
 - `messages` - Messages between matched users
 
+## Android (Flutter)
+
+The first mobile slice lives in [`mobile/`](mobile/). It ports the web
+glassmorphism from `frontend/src/index.css` (there is no native iOS app in this
+repo) and talks to the same `/api` shapes.
+
+Android builds default to a **dev** API (`http://10.0.2.2:4000` on the
+emulator). Do not invent a production host.
+
+```bash
+cd mobile
+flutter run --flavor dev --dart-define-from-file=config/dev.json
+```
+
+Play Store scaffolding, AAB instructions, and remaining blockers:
+[`mobile/PLAY_STORE.md`](mobile/PLAY_STORE.md).
+
 ## Future Plans
 
-- Move to Flutter for mobile app development
-- Add photo upload functionality
+- Host a production API and fill `API_BASE_URL` for the `prod` flavor
 - Implement push notifications
 - Add video chat capabilities
 - Enhanced matching algorithm

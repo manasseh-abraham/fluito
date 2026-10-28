@@ -10,6 +10,14 @@
 - Discovery based on preferences
 - All endpoints tested and working
 
+✅ **Flutter Android app (`mobile/`) — first slice**
+- Screens: auth, discover/swipe, matches, messaging, profile
+- JWT in secure storage; API shapes from `API_DOCUMENTATION.md`
+- Glassmorphism ported from `frontend/src/index.css` (no native iOS app in-repo)
+- Dev API via `--dart-define=API_BASE_URL` (default `http://10.0.2.2:4000`)
+- Play scaffolding: applicationId `co.iotready.fluito`, targetSdk 36, signing placeholders, R8
+- See `mobile/README.md` and `mobile/PLAY_STORE.md`
+
 ## Next Steps for Mobile Development
 
 ### 1. **API Documentation & Testing**
@@ -19,10 +27,16 @@
 - [ ] Set up environment variables for production
 
 ### 2. **Flutter App Setup**
+
+The Android client now lives in `mobile/` (Dart package `fluito`, application
+id `co.iotready.fluito`). Default API host is the **dev** server
+`http://10.0.2.2:4000` (Android emulator → host). Override with
+`--dart-define=API_BASE_URL=...`. See `mobile/README.md`.
+
 ```bash
-# Create Flutter project
-flutter create fluito_mobile
-cd fluito_mobile
+cd mobile
+# dependencies already listed in pubspec.yaml; to recreate from scratch:
+# flutter create --org co.iotready --project-name fluito --platforms android,ios mobile
 
 # Add dependencies to pubspec.yaml
 dependencies:
