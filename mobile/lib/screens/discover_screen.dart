@@ -43,9 +43,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(text),
-            backgroundColor: matched
-                ? FluitoTokens.success
-                : palette.primary,
+            backgroundColor: matched ? FluitoTokens.success : palette.primary,
           ),
         );
         if (matched) {
@@ -56,156 +54,162 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: Row(
-            children: [
-              const Text(
-                'Discover Matches',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
-              ),
-              const Spacer(),
-              IconButton(
-                onPressed: discover.loading ? null : discover.load,
-                icon: const Icon(Icons.refresh_rounded),
-              ),
-            ],
+        PageHeader(
+          title: 'Discover',
+          trailing: IconButton(
+            onPressed: discover.loading ? null : discover.load,
+            icon: const Icon(Icons.refresh_rounded),
           ),
         ),
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: discover.loading && card == null
                 ? const Center(child: CircularProgressIndicator())
                 : card == null
                     ? const EmptyState(
                         icon: Icons.favorite_outline,
-                        message: 'No more matches available. Check back later!',
+                        message:
+                            'No more matches available. Check back later!',
                       )
                     : Column(
                         children: [
                           Expanded(
                             child: GlassCard(
-                              padding: const EdgeInsets.all(20),
+                              padding: const EdgeInsets.all(12),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   Expanded(
-                                    child: LayoutBuilder(
-                                      builder: (context, constraints) {
-                                        final side = constraints.maxWidth;
-                                        return ProfilePhoto(
-                                          url: (card.profilePictureUrl ==
-                                                      null ||
-                                                  card.profilePictureUrl!
-                                                      .isEmpty)
-                                              ? null
-                                              : config.resolveMedia(
-                                                  card.profilePictureUrl,
-                                                ),
-                                          size: side,
-                                          borderRadius:
-                                              BorderRadius.circular(16),
-                                          palette: palette,
-                                          fallback: Text(
-                                            card.gender == 'female'
-                                                ? '👩'
-                                                : '👨',
-                                            style:
-                                                const TextStyle(fontSize: 80),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(18),
+                                      child: Stack(
+                                        fit: StackFit.expand,
+                                        children: [
+                                          ProfilePhoto(
+                                            url: (card.profilePictureUrl ==
+                                                        null ||
+                                                    card.profilePictureUrl!
+                                                        .isEmpty)
+                                                ? null
+                                                : config.resolveMedia(
+                                                    card.profilePictureUrl,
+                                                  ),
+                                            width: double.infinity,
+                                            height: double.infinity,
+                                            borderRadius:
+                                                BorderRadius.circular(18),
+                                            palette: palette,
+                                            fallback: Text(
+                                              card.gender == 'female'
+                                                  ? '👩'
+                                                  : '👨',
+                                              style:
+                                                  const TextStyle(fontSize: 80),
+                                            ),
                                           ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    card.displayName,
-                                    style: const TextStyle(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  Text(
-                                    '${card.age} years old',
-                                    style: const TextStyle(
-                                      color: FluitoTokens.textSecondary,
-                                      fontSize: 18,
-                                    ),
-                                  ),
-                                  if (card.locationCity != null &&
-                                      card.locationCity!.isNotEmpty)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 8),
-                                      child: Text(
-                                        '📍 ${card.locationCity}${card.locationState != null ? ', ${card.locationState}' : ''}',
-                                        style: const TextStyle(
-                                          color: FluitoTokens.textSecondary,
-                                        ),
+                                          const DecoratedBox(
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                begin: Alignment.topCenter,
+                                                end: Alignment.bottomCenter,
+                                                colors: [
+                                                  Colors.transparent,
+                                                  Colors.transparent,
+                                                  Color(0x99000000),
+                                                ],
+                                                stops: [0, 0.45, 1],
+                                              ),
+                                            ),
+                                          ),
+                                          Positioned(
+                                            left: 16,
+                                            right: 16,
+                                            bottom: 16,
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  '${card.displayName}, ${card.age}',
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 26,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                                if (card.locationCity !=
+                                                        null &&
+                                                    card.locationCity!
+                                                        .isNotEmpty)
+                                                  Text(
+                                                    '${card.locationCity}${card.locationState != null ? ', ${card.locationState}' : ''}',
+                                                    style: const TextStyle(
+                                                      color: Colors.white70,
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
+                                  ),
                                   if (card.denomination != null &&
                                       card.denomination!.isNotEmpty)
                                     Padding(
-                                      padding: const EdgeInsets.only(top: 6),
-                                      child: Text(
-                                        '⛪ ${card.denomination}',
-                                        style: const TextStyle(
-                                          color: FluitoTokens.textSecondary,
-                                        ),
+                                      padding: const EdgeInsets.fromLTRB(
+                                        8,
+                                        12,
+                                        8,
+                                        0,
                                       ),
-                                    ),
-                                  if (card.churchName != null &&
-                                      card.churchName!.isNotEmpty)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 4),
                                       child: Text(
-                                        card.churchName!,
+                                        '⛪ ${card.denomination}${card.churchName != null && card.churchName!.isNotEmpty ? ' · ${card.churchName}' : ''}',
                                         style: const TextStyle(
                                           color: FluitoTokens.textSecondary,
-                                          fontSize: 13,
                                         ),
                                       ),
                                     ),
                                   if (card.bio != null && card.bio!.isNotEmpty)
                                     Padding(
-                                      padding: const EdgeInsets.only(top: 10),
+                                      padding: const EdgeInsets.fromLTRB(
+                                        8,
+                                        6,
+                                        8,
+                                        4,
+                                      ),
                                       child: Text(
                                         card.bio!,
-                                        maxLines: 4,
+                                        maxLines: 3,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(height: 1.5),
+                                        style: const TextStyle(height: 1.4),
                                       ),
                                     ),
                                 ],
                               ),
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 14),
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Expanded(
-                                child: _SwipeButton(
-                                  label: '✕',
-                                  color: FluitoTokens.danger,
-                                  fill: const Color.fromRGBO(255, 59, 48, 0.2),
-                                  border: const Color.fromRGBO(255, 59, 48, 0.4),
-                                  onTap: discover.swiping
-                                      ? null
-                                      : () => discover.swipe('reject'),
-                                ),
+                              _RoundAction(
+                                icon: Icons.close_rounded,
+                                color: FluitoTokens.danger,
+                                fill: const Color.fromRGBO(255, 59, 48, 0.14),
+                                onTap: discover.swiping
+                                    ? null
+                                    : () => discover.swipe('reject'),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _SwipeButton(
-                                  label: '❤',
-                                  color: FluitoTokens.success,
-                                  fill: const Color.fromRGBO(52, 199, 89, 0.2),
-                                  border: const Color.fromRGBO(52, 199, 89, 0.4),
-                                  onTap: discover.swiping
-                                      ? null
-                                      : () => discover.swipe('like'),
-                                ),
+                              const SizedBox(width: 28),
+                              _RoundAction(
+                                icon: Icons.favorite_rounded,
+                                color: FluitoTokens.success,
+                                fill: const Color.fromRGBO(52, 199, 89, 0.16),
+                                onTap: discover.swiping
+                                    ? null
+                                    : () => discover.swipe('like'),
                               ),
                             ],
                           ),
@@ -222,37 +226,31 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   }
 }
 
-class _SwipeButton extends StatelessWidget {
-  const _SwipeButton({
-    required this.label,
+class _RoundAction extends StatelessWidget {
+  const _RoundAction({
+    required this.icon,
     required this.color,
     required this.fill,
-    required this.border,
     required this.onTap,
   });
 
-  final String label;
+  final IconData icon;
   final Color color;
   final Color fill;
-  final Color border;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: fill,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: border, width: 2),
-      ),
+      shape: CircleBorder(side: BorderSide(color: color.withValues(alpha: 0.4))),
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        customBorder: const CircleBorder(),
         onTap: onTap,
         child: SizedBox(
-          height: 56,
-          child: Center(
-            child: Text(label, style: TextStyle(fontSize: 28, color: color)),
-          ),
+          width: 64,
+          height: 64,
+          child: Icon(icon, color: color, size: 30),
         ),
       ),
     );

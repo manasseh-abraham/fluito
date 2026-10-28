@@ -1,16 +1,16 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../config/app_config.dart';
 import '../theme/tokens.dart';
 
-/// Shared glassmorphism primitives matching `frontend/src/index.css`.
+/// Shared glass primitives matching `frontend/src/index.css` *visually*
+/// without live `BackdropFilter`.
 ///
-/// Cards, nav, inputs, and the orb background all use [BackdropFilter]
-/// (`ImageFilter.blur`) plus translucent fills and 1px glass borders.
+/// Stacking `BackdropFilter` + 60fps `ImageFiltered` orbs under the login
+/// form starved the UI isolate on Android (jank) and wrapping `TextField`s
+/// in `ClipRRect`+`BackdropFilter` prevented the IME from attaching.
 
-class GlassBackground extends StatefulWidget {
+class GlassBackground extends StatelessWidget {
   const GlassBackground({
     super.key,
     required this.palette,
@@ -21,31 +21,7 @@ class GlassBackground extends StatefulWidget {
   final Widget child;
 
   @override
-  State<GlassBackground> createState() => _GlassBackgroundState();
-}
-
-class _GlassBackgroundState extends State<GlassBackground>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 20),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final palette = widget.palette;
     return ColoredBox(
       color: palette.pageWash,
       child: Stack(
@@ -60,111 +36,47 @@ class _GlassBackgroundState extends State<GlassBackground>
               ),
             ),
           ),
-          AnimatedBuilder(
-            animation: _controller,
-            builder: (context, _) {
-              return Stack(
-                children: [
-                  _Orb(
-                    color: palette.primary,
-                    size: 400,
-                    alignment: const Alignment(-1.15, -1.2),
-                    t: _controller.value,
-                    phase: 0,
-                  ),
-                  _Orb(
-                    color: palette.primaryLight,
-                    size: 300,
-                    alignment: const Alignment(1.2, 1.15),
-                    t: _controller.value,
-                    phase: 0.25,
-                  ),
-                  _Orb(
-                    color: palette.accent,
-                    size: 350,
-                    alignment: Alignment.center,
-                    t: _controller.value,
-                    phase: 0.5,
-                  ),
-                ],
-              );
-            },
+          RepaintBoundary(
+            child: IgnorePointer(
+              child: CustomPaint(
+                painter: _OrbPainter(palette),
+                size: Size.infinite,
+              ),
+            ),
           ),
-          widget.child,
+          child,
         ],
       ),
     );
   }
 }
 
-class _Orb extends StatelessWidget {
-  const _Orb({
-    required this.color,
-    required this.size,
-    required this.alignment,
-    required this.t,
-    required this.phase,
-  });
+/// Soft colored blobs (the CSS orbs) painted once. No per-frame blur.
+class _OrbPainter extends CustomPainter {
+  const _OrbPainter(this.palette);
 
-  final Color color;
-  final double size;
-  final Alignment alignment;
-  final double t;
-  final double phase;
+  final FluitoPalette palette;
 
   @override
-  Widget build(BuildContext context) {
-    final cycle = (t + phase) % 1.0;
-    final Offset drift;
-    final double scale;
-    if (cycle < 1 / 3) {
-      final u = cycle * 3;
-      drift = Offset(30 * u, -30 * u);
-      scale = 1 + 0.1 * u;
-    } else if (cycle < 2 / 3) {
-      final u = (cycle - 1 / 3) * 3;
-      drift = Offset(30 - 50 * u, -30 + 50 * u);
-      scale = 1.1 - 0.2 * u;
-    } else {
-      final u = (cycle - 2 / 3) * 3;
-      drift = Offset(-20 + 20 * u, 20 - 20 * u);
-      scale = 0.9 + 0.1 * u;
+  void paint(Canvas canvas, Size size) {
+    void blob(Offset c, double r, Color color) {
+      final paint = Paint()
+        ..shader = RadialGradient(
+          colors: [
+            color.withValues(alpha: 0.55),
+            color.withValues(alpha: 0.0),
+          ],
+        ).createShader(Rect.fromCircle(center: c, radius: r));
+      canvas.drawCircle(c, r, paint);
     }
 
-    return Align(
-      alignment: alignment,
-      child: Transform.translate(
-        offset: drift,
-        child: Transform.scale(
-          scale: scale,
-          child: ImageFiltered(
-            imageFilter: ColorFilter.mode(
-              color.withValues(alpha: 0.55),
-              BlendMode.srcIn,
-            ),
-            child: ImageFiltered(
-              imageFilter: FluitoTokens.cardBackdropFilter,
-              child: Container(
-                width: size,
-                height: size,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: color.withValues(alpha: 0.6),
-                  boxShadow: [
-                    BoxShadow(
-                      color: color.withValues(alpha: 0.45),
-                      blurRadius: FluitoTokens.orbBlurSigma,
-                      spreadRadius: FluitoTokens.orbBlurSigma / 2,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+    blob(Offset(size.width * -0.05, size.height * -0.02), 220, palette.orbA);
+    blob(Offset(size.width * 1.05, size.height * 0.95), 200, palette.orbB);
+    blob(Offset(size.width * 0.55, size.height * 0.42), 180, palette.orbC);
   }
+
+  @override
+  bool shouldRepaint(_OrbPainter oldDelegate) => oldDelegate.palette != palette;
 }
 
 class GlassSurface extends StatelessWidget {
@@ -173,23 +85,19 @@ class GlassSurface extends StatelessWidget {
     required this.child,
     this.borderRadius = FluitoTokens.cardRadius,
     this.padding,
-    this.background = FluitoTokens.glassBg,
-    this.border = FluitoTokens.glassBorder,
-    this.blurFilter,
-    this.shadows = FluitoTokens.cardShadow,
     this.width,
     this.height,
+    this.shadows = FluitoTokens.cardShadow,
+    this.highlighted = false,
   });
 
   final Widget child;
   final double borderRadius;
   final EdgeInsetsGeometry? padding;
-  final Color background;
-  final Color border;
-  final ImageFilter? blurFilter;
-  final List<BoxShadow> shadows;
   final double? width;
   final double? height;
+  final List<BoxShadow> shadows;
+  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
@@ -197,36 +105,32 @@ class GlassSurface extends StatelessWidget {
     return Container(
       width: width,
       height: height,
+      padding: padding,
       decoration: BoxDecoration(
         borderRadius: radius,
+        border: Border.all(
+          color: highlighted
+              ? FluitoTokens.primary
+              : FluitoTokens.glassBorder,
+          width: highlighted ? 1.6 : 1,
+        ),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [FluitoTokens.glassFillTop, FluitoTokens.glassFillBottom],
+        ),
         boxShadow: shadows,
       ),
-      child: ClipRRect(
-        borderRadius: radius,
-        child: BackdropFilter(
-          filter: blurFilter ?? FluitoTokens.cardBackdropFilter,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: background,
-              borderRadius: radius,
-              border: Border.all(color: border),
-            ),
-            child: padding == null
-                ? child
-                : Padding(padding: padding!, child: child),
-          ),
-        ),
-      ),
+      child: child,
     );
   }
 }
 
-/// `.glass-card` — 24px radius, blur 20px + saturate 180%, translucent fill.
-class GlassCard extends StatefulWidget {
+class GlassCard extends StatelessWidget {
   const GlassCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(24),
+    this.padding = const EdgeInsets.all(22),
     this.onTap,
     this.width,
   });
@@ -237,38 +141,24 @@ class GlassCard extends StatefulWidget {
   final double? width;
 
   @override
-  State<GlassCard> createState() => _GlassCardState();
-}
-
-class _GlassCardState extends State<GlassCard> {
-  bool _pressed = false;
-
-  @override
   Widget build(BuildContext context) {
     final card = GlassSurface(
-      width: widget.width,
-      padding: widget.padding,
-      child: widget.child,
+      width: width,
+      padding: padding,
+      child: child,
     );
-
-    return AnimatedSlide(
-      offset: _pressed ? const Offset(0, -0.012) : Offset.zero,
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOut,
-      child: widget.onTap == null
-          ? card
-          : GestureDetector(
-              onTap: widget.onTap,
-              onTapDown: (_) => setState(() => _pressed = true),
-              onTapCancel: () => setState(() => _pressed = false),
-              onTapUp: (_) => setState(() => _pressed = false),
-              child: card,
-            ),
+    if (onTap == null) return card;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(FluitoTokens.cardRadius),
+        onTap: onTap,
+        child: card,
+      ),
     );
   }
 }
 
-/// `.glass-nav` — sticky translucent bar with blur, used as a bottom nav.
 class GlassNavBar extends StatelessWidget {
   const GlassNavBar({
     super.key,
@@ -281,33 +171,35 @@ class GlassNavBar extends StatelessWidget {
   final ValueChanged<int> onSelect;
   final Color primary;
 
-  static const _items = <(IconData, String)>[
-    (Icons.search_rounded, 'Discover'),
-    (Icons.favorite_outline_rounded, 'Matches'),
-    (Icons.chat_bubble_outline_rounded, 'Messages'),
-    (Icons.person_outline_rounded, 'Profile'),
+  static const _items = <(IconData, IconData, String)>[
+    (Icons.explore_outlined, Icons.explore_rounded, 'Discover'),
+    (Icons.favorite_outline_rounded, Icons.favorite_rounded, 'Matches'),
+    (Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 'Messages'),
+    (Icons.person_outline_rounded, Icons.person_rounded, 'Profile'),
   ];
 
   @override
   Widget build(BuildContext context) {
     final bottom = MediaQuery.paddingOf(context).bottom;
-    return GlassSurface(
-      borderRadius: 0,
-      shadows: const [],
-      padding: EdgeInsets.fromLTRB(8, 8, 8, 8 + bottom),
-      child: Row(
-        children: [
-          for (var i = 0; i < _items.length; i++)
-            Expanded(
-              child: _NavItem(
-                icon: _items[i].$1,
-                label: _items[i].$2,
-                selected: currentIndex == i,
-                primary: primary,
-                onTap: () => onSelect(i),
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, 0, 16, 10 + bottom),
+      child: GlassSurface(
+        borderRadius: FluitoTokens.navRadius,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+        child: Row(
+          children: [
+            for (var i = 0; i < _items.length; i++)
+              Expanded(
+                child: _NavItem(
+                  icon: currentIndex == i ? _items[i].$2 : _items[i].$1,
+                  label: _items[i].$3,
+                  selected: currentIndex == i,
+                  primary: primary,
+                  onTap: () => onSelect(i),
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -332,10 +224,10 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = selected ? primary : FluitoTokens.textSecondary;
     return Material(
-      color: selected ? FluitoTokens.glassActive : Colors.transparent,
-      borderRadius: BorderRadius.circular(12),
+      color: selected ? primary.withValues(alpha: 0.12) : Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
@@ -343,12 +235,12 @@ class _NavItem extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(icon, color: color, size: 22),
-              const SizedBox(height: 4),
+              const SizedBox(height: 3),
               Text(
                 label,
                 style: TextStyle(
                   fontSize: 11,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                   color: color,
                 ),
               ),
@@ -360,7 +252,7 @@ class _NavItem extends StatelessWidget {
   }
 }
 
-class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
+class GlassAppBar extends StatelessWidget {
   const GlassAppBar({
     super.key,
     required this.title,
@@ -373,39 +265,26 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Widget? leading;
 
   @override
-  Size get preferredSize => const Size.fromHeight(64);
-
-  @override
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
-    return GlassSurface(
-      borderRadius: 0,
-      shadows: const [],
-      padding: EdgeInsets.fromLTRB(16, top + 10, 12, 12),
-      child: SizedBox(
-        height: 40,
-        child: Row(
-          children: [
-            if (leading != null) ...[
-              leading!,
-              const SizedBox(width: 8),
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, top + 8, 16, 8),
+      child: GlassSurface(
+        borderRadius: 18,
+        padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+        child: SizedBox(
+          height: 40,
+          child: Row(
+            children: [
+              if (leading != null) ...[
+                leading!,
+                const SizedBox(width: 8),
+              ],
+              GradientWordmark(fontSize: 22, text: title),
+              const Spacer(),
+              ...?actions,
             ],
-            ShaderMask(
-              shaderCallback: (rect) => const LinearGradient(
-                colors: [FluitoTokens.primary, FluitoTokens.primaryLight],
-              ).createShader(rect),
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-            const Spacer(),
-            ...?actions,
-          ],
+          ),
         ),
       ),
     );
@@ -432,69 +311,71 @@ class GlassButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = palette ?? FluitoPalette.blue;
     final enabled = onPressed != null && !busy;
-    final child = DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(FluitoTokens.fieldRadius),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [p.primary, p.primaryLight],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: p.primary.withValues(alpha: 0.30),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 52),
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-            child: busy
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.4,
-                      color: Colors.white,
-                    ),
-                  )
-                : Text(
-                    label,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                    ),
-                  ),
-          ),
-        ),
-      ),
-    );
-
-    final button = Opacity(
-      opacity: enabled ? 1 : 0.6,
+    final child = AnimatedOpacity(
+      duration: const Duration(milliseconds: 160),
+      opacity: enabled ? 1 : 0.55,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(FluitoTokens.fieldRadius),
           onTap: enabled ? onPressed : null,
-          child: child,
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(FluitoTokens.fieldRadius),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [p.primary, p.primaryLight],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: p.primary.withValues(alpha: 0.28),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 52),
+              child: Center(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  child: busy
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.4,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          label,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
 
-    return expand ? SizedBox(width: double.infinity, child: button) : button;
+    return expand ? SizedBox(width: double.infinity, child: child) : child;
   }
 }
 
+/// Plain Material [TextField] — never wrap in BackdropFilter/ClipRRect.
 class GlassField extends StatelessWidget {
   const GlassField({
     super.key,
     this.controller,
+    this.focusNode,
     this.hint,
     this.label,
     this.obscure = false,
@@ -502,11 +383,18 @@ class GlassField extends StatelessWidget {
     this.maxLines = 1,
     this.maxLength,
     this.onChanged,
+    this.onSubmitted,
     this.textInputAction,
     this.enabled = true,
+    this.autofillHints,
+    this.autocorrect,
+    this.enableSuggestions,
+    this.textCapitalization = TextCapitalization.none,
+    this.prefixIcon,
   });
 
   final TextEditingController? controller;
+  final FocusNode? focusNode;
   final String? hint;
   final String? label;
   final bool obscure;
@@ -514,11 +402,21 @@ class GlassField extends StatelessWidget {
   final int maxLines;
   final int? maxLength;
   final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
   final TextInputAction? textInputAction;
   final bool enabled;
+  final Iterable<String>? autofillHints;
+  final bool? autocorrect;
+  final bool? enableSuggestions;
+  final TextCapitalization textCapitalization;
+  final IconData? prefixIcon;
 
   @override
   Widget build(BuildContext context) {
+    final hideAssist = obscure ||
+        keyboardType == TextInputType.emailAddress ||
+        keyboardType == TextInputType.visiblePassword;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -526,40 +424,57 @@ class GlassField extends StatelessWidget {
           Text(
             label!,
             style: const TextStyle(
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
               color: FluitoTokens.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
         ],
-        ClipRRect(
-          borderRadius: BorderRadius.circular(FluitoTokens.fieldRadius),
-          child: BackdropFilter(
-            filter: FluitoTokens.inputBackdropFilter,
-            child: Material(
-              color: Colors.transparent,
-              child: TextField(
-              controller: controller,
-              obscureText: obscure,
-              keyboardType: keyboardType,
-              maxLines: obscure ? 1 : maxLines,
-              maxLength: maxLength,
-              onChanged: onChanged,
-              enabled: enabled,
-              textInputAction: textInputAction,
-              style: const TextStyle(
-                fontSize: 16,
-                color: FluitoTokens.textPrimary,
-              ),
-              decoration: InputDecoration(
-                hintText: hint,
-                counterText: '',
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 14,
-                ),
-              ),
-            ),
+        TextField(
+          controller: controller,
+          focusNode: focusNode,
+          enabled: enabled,
+          obscureText: obscure,
+          keyboardType: keyboardType ??
+              (obscure
+                  ? TextInputType.visiblePassword
+                  : (maxLines > 1
+                      ? TextInputType.multiline
+                      : TextInputType.text)),
+          textInputAction: textInputAction ??
+              (maxLines > 1 ? TextInputAction.newline : TextInputAction.next),
+          maxLines: obscure ? 1 : maxLines,
+          maxLength: maxLength,
+          onChanged: onChanged,
+          onSubmitted: onSubmitted,
+          autofillHints: autofillHints,
+          autocorrect: autocorrect ?? !hideAssist,
+          enableSuggestions: enableSuggestions ?? !hideAssist,
+          textCapitalization: textCapitalization,
+          smartDashesType: hideAssist
+              ? SmartDashesType.disabled
+              : SmartDashesType.enabled,
+          smartQuotesType: hideAssist
+              ? SmartQuotesType.disabled
+              : SmartQuotesType.enabled,
+          enableIMEPersonalizedLearning: !obscure,
+          showCursor: true,
+          enableInteractiveSelection: true,
+          keyboardAppearance: Brightness.light,
+          style: const TextStyle(
+            fontSize: 16,
+            color: FluitoTokens.textPrimary,
+            height: 1.3,
+          ),
+          decoration: InputDecoration(
+            hintText: hint,
+            counterText: '',
+            filled: true,
+            fillColor: FluitoTokens.glassInputFill,
+            prefixIcon: prefixIcon == null ? null : Icon(prefixIcon, size: 20),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
             ),
           ),
         ),
@@ -585,12 +500,12 @@ class GlassMessage extends StatelessWidget {
     final Color fg;
     switch (tone) {
       case GlassMessageTone.error:
-        fill = const Color.fromRGBO(255, 59, 48, 0.15);
-        border = const Color.fromRGBO(255, 59, 48, 0.40);
+        fill = const Color.fromRGBO(255, 59, 48, 0.12);
+        border = const Color.fromRGBO(255, 59, 48, 0.35);
         fg = FluitoTokens.danger;
       case GlassMessageTone.success:
-        fill = const Color.fromRGBO(52, 199, 89, 0.15);
-        border = const Color.fromRGBO(52, 199, 89, 0.40);
+        fill = const Color.fromRGBO(52, 199, 89, 0.12);
+        border = const Color.fromRGBO(52, 199, 89, 0.35);
         fg = FluitoTokens.success;
       case GlassMessageTone.info:
         fill = FluitoTokens.glassInputFill;
@@ -599,7 +514,7 @@ class GlassMessage extends StatelessWidget {
     }
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: fill,
         borderRadius: BorderRadius.circular(12),
@@ -616,7 +531,6 @@ class GlassMessage extends StatelessWidget {
 
 enum GlassMessageTone { error, success, info }
 
-/// Visible on **dev** builds so testers can see which API host the binary uses.
 class DevApiBanner extends StatelessWidget {
   const DevApiBanner({super.key, required this.config});
 
@@ -625,24 +539,17 @@ class DevApiBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!config.isDev) return const SizedBox.shrink();
-    return SafeArea(
-      bottom: false,
-      child: Align(
-        alignment: Alignment.topCenter,
-        child: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: GlassSurface(
-            borderRadius: 20,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            shadows: const [],
-            child: Text(
-              'DEV · ${config.apiRoot.isEmpty ? "(no API host)" : config.apiRoot}',
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: FluitoTokens.textSecondary,
-              ),
-            ),
+    return Material(
+      color: const Color(0xCC1D1D1F),
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Text(
+          'DEV · ${config.apiRoot.isEmpty ? "(no API host)" : config.apiRoot}',
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
           ),
         ),
       ),
@@ -666,7 +573,7 @@ class EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return GlassCard(
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 36),
+        padding: const EdgeInsets.symmetric(vertical: 28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -675,7 +582,10 @@ class EmptyState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: FluitoTokens.textSecondary),
+              style: const TextStyle(
+                color: FluitoTokens.textSecondary,
+                fontSize: 15,
+              ),
             ),
             if (detail != null) ...[
               const SizedBox(height: 8),
@@ -718,6 +628,7 @@ class GradientWordmark extends StatelessWidget {
           fontSize: fontSize,
           fontWeight: FontWeight.w700,
           color: Colors.white,
+          letterSpacing: -0.6,
         ),
       ),
     );
@@ -754,7 +665,7 @@ class ProfilePhoto extends StatelessWidget {
       height: h,
       decoration: BoxDecoration(
         borderRadius: radius,
-        border: Border.all(color: FluitoTokens.glassBorder, width: 3),
+        border: Border.all(color: FluitoTokens.glassBorder, width: 2),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -767,8 +678,43 @@ class ProfilePhoto extends StatelessWidget {
           : Image.network(
               url.toString(),
               fit: BoxFit.cover,
+              gaplessPlayback: true,
+              filterQuality: FilterQuality.medium,
               errorBuilder: (_, _, _) => Center(child: fallback),
             ),
+    );
+  }
+}
+
+class PageHeader extends StatelessWidget {
+  const PageHeader({
+    super.key,
+    required this.title,
+    this.trailing,
+  });
+
+  final String title;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 12, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.4,
+              ),
+            ),
+          ),
+          ?trailing,
+        ],
+      ),
     );
   }
 }

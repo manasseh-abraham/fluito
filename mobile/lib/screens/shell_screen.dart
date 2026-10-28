@@ -27,11 +27,13 @@ class _ShellScreenState extends State<ShellScreen> {
         GlassAppBar(
           title: 'Fluito',
           actions: [
-            TextButton(
+            IconButton(
+              tooltip: 'Log out',
               onPressed: () => context.read<AuthController>().logout(),
-              child: const Text(
-                'Logout',
-                style: TextStyle(color: Color(0xFFFF3B30), fontSize: 12),
+              icon: const Icon(
+                Icons.logout_rounded,
+                color: Color(0xFFFF3B30),
+                size: 20,
               ),
             ),
           ],

@@ -44,7 +44,7 @@ backend. Production URL is TBD and must not be invented.
 
 ```bash
 cd mobile
-# Local emulator-oriented default is http://10.0.2.2:4000
+# Hosted development API is the default (https://api.fluito.veritas.org.in)
 API_BASE_URL=https://your-dev-api.example \
   flutter build appbundle --flavor dev --release \
   --dart-define=FLAVOR=dev \

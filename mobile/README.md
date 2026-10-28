@@ -12,8 +12,8 @@ ported from the web glassmorphism in `frontend/src/index.css` (`.glass-card`,
 | Application id (Play / prod) | `co.iotready.fluito` |
 | Application id (dev flavor) | `co.iotready.fluito.dev` |
 | Version | `1.0.0+1` (`versionName` 1.0.0, `versionCode` 1) |
-| Default API (dev) | `http://10.0.2.2:4000` (Android emulator → host Bun server) |
-| Production API | **TBD — not invented.** Pass `--dart-define=API_BASE_URL=…` when you have one. |
+| Default API (dev) | `https://api.fluito.veritas.org.in` |
+| Production API | **TBD.** Pass `--dart-define=API_BASE_URL=…` when you have a prod host. |
 
 ## Dev server API wiring
 
@@ -25,12 +25,12 @@ Compile-time knobs (never a baked-in prod URL):
 | Define | Default | Meaning |
 | --- | --- | --- |
 | `FLAVOR` | `dev` | `dev` or `prod` |
-| `API_BASE_URL` | `http://10.0.2.2:4000` when `FLAVOR=dev`; **empty** when `FLAVOR=prod` | Origin of the Bun API. `/api` is appended automatically. |
+| `API_BASE_URL` | `https://api.fluito.veritas.org.in` when `FLAVOR=dev`; **empty** when `FLAVOR=prod` | Origin of the API. `/api` is appended automatically. |
 
-`config/dev.json` is the checked-in emulator default:
+`config/dev.json` is the checked-in hosted-dev default:
 
 ```json
-{ "FLAVOR": "dev", "API_BASE_URL": "http://10.0.2.2:4000" }
+{ "FLAVOR": "dev", "API_BASE_URL": "https://api.fluito.veritas.org.in" }
 ```
 
 ### Point a build at a local or remote **dev** API
@@ -38,21 +38,18 @@ Compile-time knobs (never a baked-in prod URL):
 ```bash
 cd mobile
 
-# 1. Emulator + Bun on the same machine (default)
-#    In the repo root: bun run dev   (listens on :4000)
+# 1. Hosted development API (default)
 ./tool/run_android_dev.sh
 
-# 2. Physical device on your LAN
-API_BASE_URL=http://192.168.1.20:4000 ./tool/run_android_dev.sh
-
-# 3. Hosted development API (HTTPS)
-API_BASE_URL=https://fluito-dev.example ./tool/run_android_dev.sh
+# 2. Emulator + Bun on the same machine
+#    In the repo root: bun run dev   (listens on :4000)
+API_BASE_URL=http://10.0.2.2:4000 ./tool/run_android_dev.sh
 
 # Equivalent without the helper script
 flutter run --flavor dev --dart-define-from-file=config/dev.json
 flutter run --flavor dev \
   --dart-define=FLAVOR=dev \
-  --dart-define=API_BASE_URL=http://192.168.1.20:4000
+  --dart-define=API_BASE_URL=https://api.fluito.veritas.org.in
 ```
 
 `--flavor dev` is required: the Android Gradle project has `dev` and `prod`
@@ -82,10 +79,10 @@ when a real production API exists.
 Shared widgets in `lib/widgets/glass.dart` / tokens in `lib/theme/tokens.dart`
 mirror `frontend/src/index.css`:
 
-- `--glass-bg` / `--glass-border`
-- `BackdropFilter` blur 20px + saturate 180% on cards and nav
-- Softer blur on inputs
-- Soft colored orbs (~80px blur)
+- Translucent white fills, hairline borders, and highlight gradients
+  matching `--glass-bg` / `--glass-border` (no live `BackdropFilter` —
+  that janked Android and blocked the keyboard)
+- Static radial orbs (the CSS blobs) painted once, not animated
 - Blue (default) and pink (female profile) palettes
 
 ## Build a release AAB

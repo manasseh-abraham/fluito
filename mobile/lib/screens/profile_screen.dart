@@ -90,11 +90,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       children: [
-        const Text(
-          'My Profile',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 16),
+        const PageHeader(title: 'Profile'),
+        const SizedBox(height: 8),
         GlassCard(
           child: Column(
             children: [
@@ -238,36 +235,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: TextStyle(fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: BackdropFilter(
-                  filter: FluitoTokens.inputBackdropFilter,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: FluitoTokens.glassInputFill,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: FluitoTokens.glassBorder),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        isExpanded: true,
-                        value: _preferredGender,
-                        items: const [
-                          DropdownMenuItem(value: 'both', child: Text('Both')),
-                          DropdownMenuItem(value: 'male', child: Text('Male')),
-                          DropdownMenuItem(
-                            value: 'female',
-                            child: Text('Female'),
-                          ),
-                        ],
-                        onChanged: (v) {
-                          if (v != null) {
-                            setState(() => _preferredGender = v);
-                          }
-                        },
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: FluitoTokens.glassInputFill,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: FluitoTokens.glassBorder),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    isExpanded: true,
+                    value: _preferredGender,
+                    borderRadius: BorderRadius.circular(12),
+                    items: const [
+                      DropdownMenuItem(value: 'both', child: Text('Both')),
+                      DropdownMenuItem(value: 'male', child: Text('Male')),
+                      DropdownMenuItem(
+                        value: 'female',
+                        child: Text('Female'),
                       ),
-                    ),
+                    ],
+                    onChanged: (v) {
+                      if (v != null) {
+                        setState(() => _preferredGender = v);
+                      }
+                    },
                   ),
                 ),
               ),

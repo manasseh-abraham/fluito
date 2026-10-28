@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -9,8 +10,9 @@ import '../models/models.dart';
 
 /// HTTP client for the Fluito REST API documented in API_DOCUMENTATION.md.
 ///
-/// The host comes from [AppConfig] (dev default `http://10.0.2.2:4000`,
-/// production URL must be supplied at build time and is otherwise empty).
+/// The host comes from [AppConfig] (dev default
+/// `https://api.fluito.veritas.org.in`; production URL must be supplied at
+/// build time and is otherwise empty).
 class FluitoApi {
   FluitoApi({
     required this.config,
@@ -66,18 +68,18 @@ class FluitoApi {
     Map<String, dynamic>? body,
   }) async {
     final uri = _api.replace(path: '${_api.path}$path');
-    final http.Response response;
+    final Future<http.Response> future;
     switch (method) {
       case 'GET':
-        response = await _http.get(uri, headers: _headers(jsonBody: false));
+        future = _http.get(uri, headers: _headers(jsonBody: false));
       case 'POST':
-        response = await _http.post(
+        future = _http.post(
           uri,
           headers: _headers(),
           body: body == null ? null : jsonEncode(body),
         );
       case 'PATCH':
-        response = await _http.patch(
+        future = _http.patch(
           uri,
           headers: _headers(),
           body: body == null ? null : jsonEncode(body),
@@ -85,7 +87,14 @@ class FluitoApi {
       default:
         throw ApiException('Unsupported method $method');
     }
-    return _decode(response);
+    try {
+      final response = await future.timeout(const Duration(seconds: 20));
+      return _decode(response);
+    } on TimeoutException {
+      throw const ApiException(
+        'The server took too long to respond. Check your connection.',
+      );
+    }
   }
 
   dynamic _decode(http.Response response) {

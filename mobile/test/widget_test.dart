@@ -23,6 +23,6 @@ void main() {
     expect(find.text('Matches'), findsOneWidget);
     expect(find.text('Messages'), findsOneWidget);
     expect(find.text('Profile'), findsOneWidget);
-    expect(find.byType(BackdropFilter), findsWidgets);
+    expect(find.byType(BackdropFilter), findsNothing);
   });
 }

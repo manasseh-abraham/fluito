@@ -18,6 +18,10 @@ class _AuthScreenState extends State<AuthScreen> {
   final _password = TextEditingController();
   final _first = TextEditingController();
   final _last = TextEditingController();
+  final _emailFocus = FocusNode();
+  final _passwordFocus = FocusNode();
+  final _firstFocus = FocusNode();
+  final _lastFocus = FocusNode();
   DateTime? _dob;
   String? _gender;
   String? _localError;
@@ -28,10 +32,15 @@ class _AuthScreenState extends State<AuthScreen> {
     _password.dispose();
     _first.dispose();
     _last.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
+    _firstFocus.dispose();
+    _lastFocus.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
+    FocusScope.of(context).unfocus();
     setState(() => _localError = null);
     final auth = context.read<AuthController>();
     if (_login) {
@@ -78,122 +87,201 @@ class _AuthScreenState extends State<AuthScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
     final error = _localError ?? auth.error;
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
 
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 450),
-          child: GlassCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const GradientWordmark(),
-                const SizedBox(height: 8),
-                const Text(
-                  'Find your God-fearing partner',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: FluitoTokens.textSecondary,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 28),
-                Text(
-                  _login ? 'Welcome Back' : 'Create Account',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                if (!_login) ...[
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GlassField(controller: _first, hint: 'First Name'),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: GlassField(controller: _last, hint: 'Last Name'),
+    return SafeArea(
+      child: Center(
+        child: AutofillGroup(
+          child: ListView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + bottomInset),
+            children: [
+              const SizedBox(height: 12),
+              Center(
+                child: Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [FluitoTokens.primary, FluitoTokens.primaryLight],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: FluitoTokens.primary.withValues(alpha: 0.28),
+                        blurRadius: 16,
+                        offset: const Offset(0, 8),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                ],
-                GlassField(
-                  controller: _email,
-                  hint: 'Email',
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                ),
-                const SizedBox(height: 16),
-                GlassField(
-                  controller: _password,
-                  hint: _login ? 'Password' : 'Password (min 8 characters)',
-                  obscure: true,
-                  textInputAction: TextInputAction.done,
-                ),
-                if (!_login) ...[
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _DobButton(
-                          dob: _dob,
-                          onTap: _pickDob,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _GenderSelect(
-                          value: _gender,
-                          onChanged: (v) => setState(() => _gender = v),
-                        ),
-                      ),
-                    ],
+                  alignment: Alignment.center,
+                  child: const Text(
+                    'F',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                ],
-                const SizedBox(height: 20),
-                GlassButton(
-                  label: _login
-                      ? (auth.loading ? 'Signing in...' : 'Sign In')
-                      : (auth.loading ? 'Creating account...' : 'Create Account'),
-                  busy: auth.loading,
-                  onPressed: auth.loading ? null : _submit,
                 ),
-                const SizedBox(height: 20),
-                Wrap(
-                  alignment: WrapAlignment.center,
+              ),
+              const SizedBox(height: 16),
+              const GradientWordmark(fontSize: 40),
+              const SizedBox(height: 6),
+              const Text(
+                'Find your God-fearing partner',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: FluitoTokens.textSecondary,
+                  fontSize: 15,
+                ),
+              ),
+              const SizedBox(height: 24),
+              GlassCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      _login
-                          ? "Don't have an account? "
-                          : 'Already have an account? ',
-                      style: const TextStyle(color: FluitoTokens.textSecondary),
-                    ),
-                    GestureDetector(
-                      onTap: () => setState(() {
-                        _login = !_login;
-                        _localError = null;
-                      }),
-                      child: Text(
-                        _login ? 'Sign Up' : 'Sign In',
-                        style: const TextStyle(
-                          color: FluitoTokens.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      _login ? 'Welcome back' : 'Create account',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.4,
                       ),
                     ),
+                    const SizedBox(height: 20),
+                    if (!_login) ...[
+                      Row(
+                        children: [
+                          Expanded(
+                            child: GlassField(
+                              controller: _first,
+                              focusNode: _firstFocus,
+                              hint: 'First name',
+                              prefixIcon: Icons.person_outline,
+                              textCapitalization: TextCapitalization.words,
+                              textInputAction: TextInputAction.next,
+                              autofillHints: const [AutofillHints.givenName],
+                              onSubmitted: (_) => _lastFocus.requestFocus(),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: GlassField(
+                              controller: _last,
+                              focusNode: _lastFocus,
+                              hint: 'Last name',
+                              textCapitalization: TextCapitalization.words,
+                              textInputAction: TextInputAction.next,
+                              autofillHints: const [AutofillHints.familyName],
+                              onSubmitted: (_) => _emailFocus.requestFocus(),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                    ],
+                    GlassField(
+                      controller: _email,
+                      focusNode: _emailFocus,
+                      hint: 'Email',
+                      prefixIcon: Icons.mail_outline_rounded,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      autofillHints: const [
+                        AutofillHints.email,
+                        AutofillHints.username,
+                      ],
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      onSubmitted: (_) => _passwordFocus.requestFocus(),
+                    ),
+                    const SizedBox(height: 14),
+                    GlassField(
+                      controller: _password,
+                      focusNode: _passwordFocus,
+                      hint: _login
+                          ? 'Password'
+                          : 'Password (min 8 characters)',
+                      prefixIcon: Icons.lock_outline_rounded,
+                      obscure: true,
+                      keyboardType: TextInputType.visiblePassword,
+                      textInputAction: TextInputAction.done,
+                      autofillHints: const [AutofillHints.password],
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      onSubmitted: (_) => _submit(),
+                    ),
+                    if (!_login) ...[
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _PickerTile(
+                              label: _dob == null
+                                  ? 'Date of birth'
+                                  : '${_dob!.year}-${_dob!.month.toString().padLeft(2, '0')}-${_dob!.day.toString().padLeft(2, '0')}',
+                              muted: _dob == null,
+                              icon: Icons.cake_outlined,
+                              onTap: _pickDob,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _GenderSelect(
+                              value: _gender,
+                              onChanged: (v) => setState(() => _gender = v),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                    GlassButton(
+                      label: _login
+                          ? (auth.busy ? 'Signing in…' : 'Sign In')
+                          : (auth.busy ? 'Creating account…' : 'Create Account'),
+                      busy: auth.busy,
+                      onPressed: auth.busy ? null : _submit,
+                    ),
+                    const SizedBox(height: 16),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      children: [
+                        Text(
+                          _login
+                              ? "Don't have an account? "
+                              : 'Already have an account? ',
+                          style: const TextStyle(
+                            color: FluitoTokens.textSecondary,
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => setState(() {
+                            _login = !_login;
+                            _localError = null;
+                          }),
+                          child: Text(
+                            _login ? 'Sign Up' : 'Sign In',
+                            style: const TextStyle(
+                              color: FluitoTokens.primary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (error != null && error.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      GlassMessage(text: error),
+                    ],
                   ],
                 ),
-                if (error != null && error.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  GlassMessage(text: error),
-                ],
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -201,41 +289,51 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 }
 
-class _DobButton extends StatelessWidget {
-  const _DobButton({required this.dob, required this.onTap});
+class _PickerTile extends StatelessWidget {
+  const _PickerTile({
+    required this.label,
+    required this.onTap,
+    required this.icon,
+    this.muted = false,
+  });
 
-  final DateTime? dob;
+  final String label;
   final VoidCallback onTap;
+  final IconData icon;
+  final bool muted;
 
   @override
   Widget build(BuildContext context) {
-    final label = dob == null
-        ? 'Date of birth'
-        : '${dob!.year}-${dob!.month.toString().padLeft(2, '0')}-${dob!.day.toString().padLeft(2, '0')}';
-    return GestureDetector(
-      onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: BackdropFilter(
-          filter: FluitoTokens.inputBackdropFilter,
-          child: Container(
-            height: 52,
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-            decoration: BoxDecoration(
-              color: FluitoTokens.glassInputFill,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: FluitoTokens.glassBorder),
-            ),
-            alignment: Alignment.centerLeft,
-            child: Text(
-              label,
-              style: TextStyle(
-                color: dob == null
-                    ? FluitoTokens.textSecondary
-                    : FluitoTokens.textPrimary,
-                fontSize: 16,
+    return Material(
+      color: FluitoTokens.glassInputFill,
+      borderRadius: BorderRadius.circular(FluitoTokens.fieldRadius),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(FluitoTokens.fieldRadius),
+        onTap: onTap,
+        child: Container(
+          height: 52,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(FluitoTokens.fieldRadius),
+            border: Border.all(color: FluitoTokens.glassBorder),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, size: 18, color: FluitoTokens.textSecondary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: muted
+                        ? FluitoTokens.textSecondary
+                        : FluitoTokens.textPrimary,
+                    fontSize: 15,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -251,35 +349,30 @@ class _GenderSelect extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: BackdropFilter(
-        filter: FluitoTokens.inputBackdropFilter,
-        child: Container(
-          height: 52,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: FluitoTokens.glassInputFill,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: FluitoTokens.glassBorder),
+    return Container(
+      height: 52,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: FluitoTokens.glassInputFill,
+        borderRadius: BorderRadius.circular(FluitoTokens.fieldRadius),
+        border: Border.all(color: FluitoTokens.glassBorder),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          isExpanded: true,
+          value: value,
+          borderRadius: BorderRadius.circular(12),
+          hint: const Text(
+            'Gender',
+            style: TextStyle(color: FluitoTokens.textSecondary),
           ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              isExpanded: true,
-              value: value,
-              hint: const Text(
-                'Select Gender',
-                style: TextStyle(color: FluitoTokens.textSecondary),
-              ),
-              items: const [
-                DropdownMenuItem(value: 'male', child: Text('Male')),
-                DropdownMenuItem(value: 'female', child: Text('Female')),
-              ],
-              onChanged: (v) {
-                if (v != null) onChanged(v);
-              },
-            ),
-          ),
+          items: const [
+            DropdownMenuItem(value: 'male', child: Text('Male')),
+            DropdownMenuItem(value: 'female', child: Text('Female')),
+          ],
+          onChanged: (v) {
+            if (v != null) onChanged(v);
+          },
         ),
       ),
     );

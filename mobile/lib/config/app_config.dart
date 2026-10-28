@@ -6,13 +6,13 @@
 /// `--dart-define-from-file`.
 ///
 /// ```sh
-/// # Android emulator → Bun on the host machine (default)
+/// # Hosted development API (default)
 /// flutter run --flavor dev --dart-define-from-file=config/dev.json
 ///
-/// # Physical device on LAN, or a hosted dev API
+/// # Android emulator → Bun on the host machine
 /// flutter run --flavor dev \
 ///   --dart-define=FLAVOR=dev \
-///   --dart-define=API_BASE_URL=http://192.168.1.20:4000
+///   --dart-define=API_BASE_URL=http://10.0.2.2:4000
 ///
 /// # Production host is TBD — do not invent one.
 /// flutter build appbundle --flavor prod \
@@ -28,7 +28,7 @@ class AppConfig {
   final AppFlavor flavor;
 
   /// Origin of the backend, without a trailing slash or `/api` suffix.
-  /// Example: `http://10.0.2.2:4000`
+  /// Example: `https://api.fluito.veritas.org.in`
   final String apiRoot;
 
   /// REST prefix matching API_DOCUMENTATION.md (`/api`).
@@ -39,10 +39,9 @@ class AppConfig {
   bool get hasApiRoot => apiRoot.isNotEmpty;
 
   /// Default used when [FLAVOR] is `dev` and [API_BASE_URL] is omitted.
-  ///
-  /// `10.0.2.2` is the Android emulator alias for the host loopback, where the
-  /// Bun+Hono API listens on port 4000 in development.
-  static const defaultDevApiRoot = 'http://10.0.2.2:4000';
+  /// Hosted Fluito development API. Override with `--dart-define=API_BASE_URL`
+  /// (e.g. `http://10.0.2.2:4000` for an emulator hitting local Bun).
+  static const defaultDevApiRoot = 'https://api.fluito.veritas.org.in';
 
   /// Intentionally empty. A production URL has not been chosen; passing
   /// `--dart-define=FLAVOR=prod` without `API_BASE_URL` is a configuration error.

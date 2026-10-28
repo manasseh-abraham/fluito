@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../models/models.dart';
@@ -9,7 +11,13 @@ class AuthController extends ChangeNotifier {
 
   final FluitoApi api;
 
-  bool loading = true;
+  /// True only while restoring a stored session on launch.
+  /// Must not be used for login submit — that unmounted the login form
+  /// (and killed the IME) in the first Android build.
+  bool booting = true;
+
+  /// In-flight login / register. The auth form stays mounted.
+  bool busy = false;
   Profile? profile;
   String? error;
 
@@ -19,7 +27,7 @@ class AuthController extends ChangeNotifier {
       profile?.gender == 'female' ? FluitoPalette.pink : FluitoPalette.blue;
 
   Future<void> restore() async {
-    loading = true;
+    booting = true;
     error = null;
     notifyListeners();
     try {
@@ -27,6 +35,10 @@ class AuthController extends ChangeNotifier {
       if (api.hasToken) {
         profile = await api.getProfile();
       }
+    } on TimeoutException {
+      error = 'The server took too long. You can still sign in.';
+      await api.clearSession();
+      profile = null;
     } on ApiException catch (e) {
       if (e.statusCode == 401) {
         await api.clearSession();
@@ -37,7 +49,7 @@ class AuthController extends ChangeNotifier {
     } catch (e) {
       error = e.toString();
     } finally {
-      loading = false;
+      booting = false;
       notifyListeners();
     }
   }
@@ -67,7 +79,7 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<bool> _authAction(Future<AuthResponse> Function() action) async {
-    loading = true;
+    busy = true;
     error = null;
     notifyListeners();
     try {
@@ -84,7 +96,7 @@ class AuthController extends ChangeNotifier {
       error = e.toString();
       return false;
     } finally {
-      loading = false;
+      busy = false;
       notifyListeners();
     }
   }

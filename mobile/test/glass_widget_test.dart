@@ -9,7 +9,7 @@ import 'package:fluito/widgets/glass.dart';
 import 'package:provider/provider.dart';
 
 void main() {
-  testWidgets('GlassCard uses BackdropFilter for the CSS glass blur', (tester) async {
+  testWidgets('GlassCard paints without BackdropFilter', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: GlassBackground(
@@ -21,18 +21,20 @@ void main() {
       ),
     );
 
-    expect(find.byType(BackdropFilter), findsWidgets);
+    expect(find.byType(BackdropFilter), findsNothing);
     expect(find.text('glass-card'), findsOneWidget);
   });
 
-  testWidgets('Auth screen ports the web wordmark and subtitle', (tester) async {
+  testWidgets('Auth screen wordmark, fields accept input, no backdrop blur', (
+    tester,
+  ) async {
     const config = AppConfig(
       flavor: AppFlavor.dev,
-      apiRoot: 'http://10.0.2.2:4000',
+      apiRoot: 'https://api.fluito.veritas.org.in',
     );
     final api = FluitoApi(config: config);
     final auth = AuthController(api: api);
-    auth.loading = false;
+    auth.booting = false;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -48,17 +50,30 @@ void main() {
     expect(find.text('Fluito'), findsOneWidget);
     expect(find.text('Find your God-fearing partner'), findsOneWidget);
     expect(find.text('Sign In'), findsWidgets);
+    expect(find.byType(BackdropFilter), findsNothing);
+    expect(find.byType(TextField), findsNWidgets(2));
+
+    await tester.enterText(find.byType(TextField).first, 'user@example.com');
+    expect(find.text('user@example.com'), findsOneWidget);
+
+    await tester.tap(find.byType(TextField).first);
+    await tester.pump();
+    expect(
+      tester.takeException(),
+      isNull,
+      reason: 'Focusing the email field must not throw',
+    );
   });
 
   testWidgets('DevApiBanner shows the compiled-in API host', (tester) async {
     const config = AppConfig(
       flavor: AppFlavor.dev,
-      apiRoot: 'http://10.0.2.2:4000',
+      apiRoot: 'https://api.fluito.veritas.org.in',
     );
     await tester.pumpWidget(
       const MaterialApp(home: Scaffold(body: DevApiBanner(config: config))),
     );
     expect(find.textContaining('DEV'), findsOneWidget);
-    expect(find.textContaining('10.0.2.2:4000'), findsOneWidget);
+    expect(find.textContaining('api.fluito.veritas.org.in'), findsOneWidget);
   });
 }

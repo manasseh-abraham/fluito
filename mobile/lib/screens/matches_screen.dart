@@ -34,13 +34,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: Text(
-            'Your Matches',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
-          ),
-        ),
+        const PageHeader(title: 'Matches'),
         Expanded(
           child: matches.loading
               ? const Center(child: CircularProgressIndicator())

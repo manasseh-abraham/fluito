@@ -16,12 +16,12 @@ void main() {
   });
 
   group('AppConfig.fromEnvironment defaults', () {
-    test('dev flavor is the default and points at the emulator host', () {
+    test('dev flavor is the default and points at the hosted dev API', () {
       final config = AppConfig.fromEnvironment();
       expect(config.flavor, AppFlavor.dev);
       expect(config.isDev, isTrue);
       expect(config.apiRoot, AppConfig.defaultDevApiRoot);
-      expect(config.apiBase, 'http://10.0.2.2:4000/api');
+      expect(config.apiBase, 'https://api.fluito.veritas.org.in/api');
     });
 
     test('production default host is empty (TBD, not invented)', () {

@@ -53,23 +53,34 @@ class _FluitoRoot extends StatelessWidget {
 
     return MaterialApp(
       title: config.isDev ? 'Fluito Dev' : 'Fluito',
-      debugShowCheckedModeBanner: config.isDev,
+      debugShowCheckedModeBanner: false,
       theme: AppTheme.of(palette),
       home: GlassBackground(
         palette: palette,
         child: Scaffold(
           backgroundColor: Colors.transparent,
+          resizeToAvoidBottomInset: true,
           body: Stack(
-            fit: StackFit.expand,
             children: [
-              if (auth.loading)
-                const Center(child: CircularProgressIndicator())
-              else if (!auth.isAuthenticated)
-                const AuthScreen()
-              else
-                const ShellScreen(),
+              Positioned.fill(
+                child: auth.booting
+                    ? const Center(child: CircularProgressIndicator())
+                    : auth.isAuthenticated
+                    ? const ShellScreen()
+                    : const AuthScreen(),
+              ),
               if (config.isDev)
-                IgnorePointer(child: DevApiBanner(config: config)),
+                Positioned(
+                  top: 8,
+                  left: 0,
+                  right: 0,
+                  child: SafeArea(
+                    bottom: false,
+                    child: IgnorePointer(
+                      child: Center(child: DevApiBanner(config: config)),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

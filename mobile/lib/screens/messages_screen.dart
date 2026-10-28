@@ -58,16 +58,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
     return Column(
       children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Messages',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
-            ),
-          ),
-        ),
+        const PageHeader(title: 'Messages'),
         SizedBox(
           height: 96,
           child: messages.loadingMatches
@@ -94,9 +85,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                           child: GlassSurface(
                             borderRadius: 16,
                             padding: const EdgeInsets.all(10),
-                            background: selected
-                                ? FluitoTokens.glassActive
-                                : FluitoTokens.glassBg,
+                            highlighted: selected,
                             shadows: const [],
                             child: SizedBox(
                               width: 88,
@@ -247,7 +236,14 @@ class _MessagesScreenState extends State<MessagesScreen> {
                               Expanded(
                                 child: GlassField(
                                   controller: _composer,
-                                  hint: 'Type a message...',
+                                  hint: 'Type a message…',
+                                  textInputAction: TextInputAction.send,
+                                  textCapitalization:
+                                      TextCapitalization.sentences,
+                                  onSubmitted: (value) async {
+                                    final ok = await messages.send(value);
+                                    if (ok) _composer.clear();
+                                  },
                                 ),
                               ),
                               const SizedBox(width: 8),
