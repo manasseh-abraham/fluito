@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- app_name is supplied per flavor via resValue in app/build.gradle.kts -->
+    <string name="app_name">Fluito</string>
 </resources>

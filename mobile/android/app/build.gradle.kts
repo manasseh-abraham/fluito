@@ -39,12 +39,10 @@ android {
             dimension = "environment"
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
-            resValue("string", "app_name", "Fluito Dev")
             isDefault = true
         }
         create("prod") {
             dimension = "environment"
-            resValue("string", "app_name", "Fluito")
         }
     }
 
