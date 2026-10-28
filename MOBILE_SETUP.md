@@ -14,7 +14,7 @@
 - Screens: auth, discover/swipe, matches, messaging, profile
 - JWT in secure storage; API shapes from `API_DOCUMENTATION.md`
 - Glassmorphism ported from `frontend/src/index.css` (no native iOS app in-repo)
-- Dev API via `--dart-define=API_BASE_URL` (default `http://10.0.2.2:4000`)
+- Dev API via `--dart-define=API_BASE_URL` (default `https://api.fluito.veritas.org.in`)
 - Play scaffolding: applicationId `co.iotready.fluito`, targetSdk 36, signing placeholders, R8
 - See `mobile/README.md` and `mobile/PLAY_STORE.md`
 
@@ -30,8 +30,9 @@
 
 The Android client now lives in `mobile/` (Dart package `fluito`, application
 id `co.iotready.fluito`). Default API host is the **dev** server
-`http://10.0.2.2:4000` (Android emulator → host). Override with
-`--dart-define=API_BASE_URL=...`. See `mobile/README.md`.
+`https://api.fluito.veritas.org.in`. Override with
+`--dart-define=API_BASE_URL=...` (e.g. `http://10.0.2.2:4000` for local Bun).
+See `mobile/README.md`.
 
 ```bash
 cd mobile
