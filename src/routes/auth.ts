@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import { db } from '../db/database';
+import { authenticateWithGoogle } from '../services/googleAuth';
 import { hashPassword, comparePassword, generateToken } from '../utils/auth';
-import { registerSchema, loginSchema } from '../utils/validation';
+import { configuredGoogleClientIds, GoogleTokenError } from '../utils/google';
+import { registerSchema, loginSchema, googleAuthSchema } from '../utils/validation';
 
 export const authRoutes = new Hono();
 
@@ -71,11 +73,18 @@ authRoutes.post('/login', async (c) => {
 
     // Find user
     const user = db.prepare('SELECT id, email, password_hash FROM users WHERE email = ?').get(validated.email) as
-      | { id: number; email: string; password_hash: string }
+      | { id: number; email: string; password_hash: string | null }
       | undefined;
 
     if (!user) {
       return c.json({ error: 'Invalid email or password' }, 401);
+    }
+
+    if (!user.password_hash) {
+      return c.json(
+        { error: 'This account uses Google Sign-In. Continue with Google instead.' },
+        401
+      );
     }
 
     // Verify password
@@ -99,6 +108,47 @@ authRoutes.post('/login', async (c) => {
     if (error.name === 'ZodError') {
       return c.json({ error: 'Validation error', details: error.errors }, 400);
     }
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// Google Sign-In / Sign-Up (same path). Verifies a Google ID token and issues the same JWT as /login.
+authRoutes.post('/google', async (c) => {
+  try {
+    const body = await c.req.json();
+    const validated = googleAuthSchema.parse(body);
+    const allowedClientIds = configuredGoogleClientIds();
+
+    if (allowedClientIds.length === 0) {
+      return c.json(
+        {
+          error:
+            'Google Sign-In is not configured. Set GOOGLE_CLIENT_IDS (comma-separated Web + Android client IDs).',
+        },
+        503
+      );
+    }
+
+    const result = await authenticateWithGoogle({
+      idToken: validated.id_token,
+      clientId: validated.client_id,
+      db,
+      allowedClientIds,
+    });
+
+    return c.json({
+      message: 'Login successful',
+      token: result.token,
+      user: result.user,
+    });
+  } catch (error: any) {
+    if (error instanceof GoogleTokenError) {
+      return c.json({ error: error.message }, error.status as 400 | 401 | 502 | 503);
+    }
+    if (error.name === 'ZodError') {
+      return c.json({ error: 'Validation error', details: error.errors }, 400);
+    }
+    console.error('Google auth error:', error);
     return c.json({ error: 'Internal server error' }, 500);
   }
 });

@@ -16,9 +16,21 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+export const googleAuthSchema = z.object({
+  id_token: z.string().min(1, 'id_token is required'),
+  client_id: z.string().min(1).optional(),
+});
+
 export const profileUpdateSchema = z.object({
   first_name: z.string().min(1).optional(),
   last_name: z.string().min(1).optional(),
+  date_of_birth: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
+    .optional(),
+  gender: z.enum(['male', 'female'], {
+    errorMap: () => ({ message: 'Gender must be either male or female' }),
+  }).optional(),
   denomination: z.string().optional(),
   church_name: z.string().optional(),
   location_city: z.string().optional(),

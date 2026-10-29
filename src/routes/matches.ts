@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { db } from '../db/database';
 import { authMiddleware } from '../middleware/auth';
+import { ageFromDob } from '../utils/age';
 
 type Variables = {
   userId: number;
@@ -24,12 +25,7 @@ matchRoutes.get('/discover', (c) => {
     return c.json({ error: 'Profile not found. Please complete your profile first.' }, 404);
   }
 
-  // Calculate user's age
-  const birthDate = new Date(profile.date_of_birth);
   const today = new Date();
-  const age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-  const userAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) ? age - 1 : age;
 
   // Build query for potential matches
   let query = `
@@ -67,19 +63,23 @@ matchRoutes.get('/discover', (c) => {
     query += ' AND p.gender = ?';
     params.push(preferences.preferred_gender);
   } else if (!preferences || !preferences.preferred_gender) {
-    // Default: opposite gender
-    const oppositeGender = profile.gender === 'male' ? 'female' : 'male';
-    query += ' AND p.gender = ?';
-    params.push(oppositeGender);
+    // Default: opposite gender when the viewer has set gender. Incomplete
+    // Google-created profiles stay logged-in but skip this filter.
+    if (profile.gender === 'male' || profile.gender === 'female') {
+      const oppositeGender = profile.gender === 'male' ? 'female' : 'male';
+      query += ' AND p.gender = ?';
+      params.push(oppositeGender);
+    }
   }
 
-  // Apply age preferences
+  // Apply age preferences (skip candidates with no date of birth)
   if (preferences?.min_age || preferences?.max_age) {
     const minAge = preferences.min_age || 18;
     const maxAge = preferences.max_age || 100;
     const minBirthYear = today.getFullYear() - maxAge - 1;
     const maxBirthYear = today.getFullYear() - minAge;
-    query += ' AND CAST(SUBSTR(p.date_of_birth, 1, 4) AS INTEGER) BETWEEN ? AND ?';
+    query +=
+      ' AND p.date_of_birth IS NOT NULL AND CAST(SUBSTR(p.date_of_birth, 1, 4) AS INTEGER) BETWEEN ? AND ?';
     params.push(minBirthYear, maxBirthYear);
   }
 
@@ -93,18 +93,10 @@ matchRoutes.get('/discover', (c) => {
 
   const potentialMatches = db.prepare(query).all(...params) as any[];
 
-  // Calculate ages and format results
-  const matches = potentialMatches.map((match) => {
-    const birthDate = new Date(match.date_of_birth);
-    const age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) ? age - 1 : age;
-
-    return {
-      ...match,
-      age: actualAge,
-    };
-  });
+  const matches = potentialMatches.map((match) => ({
+    ...match,
+    age: ageFromDob(match.date_of_birth),
+  }));
 
   return c.json({ matches, count: matches.length });
 });

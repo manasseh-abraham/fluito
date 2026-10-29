@@ -36,6 +36,50 @@ Response:
 }
 ```
 
+### Google Sign-In / Sign-Up
+**POST** `/auth/google`
+
+Sign-in and sign-up share this path. The API verifies the Google ID token
+with Google's tokeninfo endpoint (`https://oauth2.googleapis.com/tokeninfo`;
+Google checks the cert signature) and accepts `aud` values listed in
+`GOOGLE_CLIENT_IDS` (comma-separated Web + Android client IDs from GCP
+project `fluito` / manasshe2@gmail.com):
+
+```
+619885353175-l00am55pa3j7rc1a5h3pcmqhhhldh3um.apps.googleusercontent.com
+619885353175-gokhfp6tmp623b2r0s796dhnq5l6jk1f.apps.googleusercontent.com
+619885353175-4u1nq6ibb3iee4b70mllfh343o71qmnj.apps.googleusercontent.com
+```
+
+`GOOGLE_WEB_CLIENT_ID`, `GOOGLE_ANDROID_CLIENT_ID`,
+`GOOGLE_ANDROID_DEV_CLIENT_ID`, and `GOOGLE_ANDROID_PROD_CLIENT_ID` are also
+merged into that allow-list. If none are set, the API falls back to the three
+IDs above. Do not deploy a `client_secret`.
+
+Missing Google profile fields are not invented: first/last name may be empty;
+`date_of_birth` and `gender` stay `null` until the user fills them on
+`PATCH /profiles/me`.
+
+Request body:
+```json
+{
+  "id_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "client_id": "optional-web-or-android-client-id.apps.googleusercontent.com"
+}
+```
+
+Response (same shape as `/auth/login`):
+```json
+{
+  "message": "Login successful",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 1,
+    "email": "user@gmail.com"
+  }
+}
+```
+
 ### Login
 **POST** `/auth/login`
 
