@@ -131,7 +131,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                                                   CrossAxisAlignment.start,
                                               children: [
                                                 Text(
-                                                  '${card.displayName}, ${card.age}',
+                                                  card.age > 0
+                                                      ? '${card.displayName}, ${card.age}'
+                                                      : card.displayName,
                                                   style: const TextStyle(
                                                     color: Colors.white,
                                                     fontSize: 26,

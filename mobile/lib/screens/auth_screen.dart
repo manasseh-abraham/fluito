@@ -247,6 +247,20 @@ class _AuthScreenState extends State<AuthScreen> {
                       busy: auth.busy,
                       onPressed: auth.busy ? null : _submit,
                     ),
+                    if (auth.googleEnabled) ...[
+                      const SizedBox(height: 14),
+                      const _OrDivider(),
+                      const SizedBox(height: 14),
+                      GlassButton(
+                        label: 'Continue with Google',
+                        outlined: true,
+                        busy: auth.busy,
+                        icon: const _GoogleMark(),
+                        onPressed: auth.busy
+                            ? null
+                            : () => context.read<AuthController>().continueWithGoogle(),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     Wrap(
                       alignment: WrapAlignment.center,
@@ -283,6 +297,55 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OrDivider extends StatelessWidget {
+  const _OrDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Expanded(child: Divider(color: FluitoTokens.glassBorder)),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            'or',
+            style: TextStyle(color: FluitoTokens.textSecondary, fontSize: 13),
+          ),
+        ),
+        const Expanded(child: Divider(color: FluitoTokens.glassBorder)),
+      ],
+    );
+  }
+}
+
+/// Simple Google "G" mark — no network image, no BackdropFilter.
+class _GoogleMark extends StatelessWidget {
+  const _GoogleMark();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 20,
+      height: 20,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: const Color(0xFFDADCE0)),
+      ),
+      child: const Text(
+        'G',
+        style: TextStyle(
+          color: Color(0xFF4285F4),
+          fontWeight: FontWeight.w800,
+          fontSize: 13,
+          height: 1,
         ),
       ),
     );

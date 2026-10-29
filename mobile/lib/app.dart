@@ -5,6 +5,7 @@ import 'config/app_config.dart';
 import 'screens/auth_screen.dart';
 import 'screens/shell_screen.dart';
 import 'services/fluito_api.dart';
+import 'services/google_auth.dart';
 import 'state/auth_controller.dart';
 import 'state/discover_controller.dart';
 import 'state/matches_controller.dart';
@@ -30,7 +31,12 @@ class FluitoApp extends StatelessWidget {
         Provider<AppConfig>.value(value: config),
         Provider<FluitoApi>.value(value: api),
         ChangeNotifierProvider(
-          create: (_) => AuthController(api: api)..restore(),
+          create: (_) => AuthController(
+            api: api,
+            googleAuth: GoogleSignInGateway(
+              serverClientId: config.googleWebClientId,
+            ),
+          )..restore(),
         ),
         ChangeNotifierProvider(create: (_) => DiscoverController(api: api)),
         ChangeNotifierProvider(create: (_) => MatchesController(api: api)),

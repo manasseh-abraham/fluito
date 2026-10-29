@@ -299,6 +299,8 @@ class GlassButton extends StatelessWidget {
     this.busy = false,
     this.expand = true,
     this.palette,
+    this.outlined = false,
+    this.icon,
   });
 
   final String label;
@@ -306,6 +308,8 @@ class GlassButton extends StatelessWidget {
   final bool busy;
   final bool expand;
   final FluitoPalette? palette;
+  final bool outlined;
+  final Widget? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -322,18 +326,26 @@ class GlassButton extends StatelessWidget {
           child: Ink(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(FluitoTokens.fieldRadius),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [p.primary, p.primaryLight],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: p.primary.withValues(alpha: 0.28),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              color: outlined ? FluitoTokens.glassInputFill : null,
+              gradient: outlined
+                  ? null
+                  : LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [p.primary, p.primaryLight],
+                    ),
+              border: outlined
+                  ? Border.all(color: FluitoTokens.glassBorder)
+                  : null,
+              boxShadow: outlined
+                  ? const []
+                  : [
+                      BoxShadow(
+                        color: p.primary.withValues(alpha: 0.28),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
             ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(minHeight: 52),
@@ -342,21 +354,32 @@ class GlassButton extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                   child: busy
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 22,
                           height: 22,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.4,
-                            color: Colors.white,
+                            color: outlined ? p.primary : Colors.white,
                           ),
                         )
-                      : Text(
-                          label,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
+                      : Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (icon != null) ...[
+                              icon!,
+                              const SizedBox(width: 10),
+                            ],
+                            Text(
+                              label,
+                              style: TextStyle(
+                                color: outlined
+                                    ? FluitoTokens.textPrimary
+                                    : Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
                         ),
                 ),
               ),

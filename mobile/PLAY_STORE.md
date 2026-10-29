@@ -88,6 +88,10 @@ geo-based yet).
 Dev flavor only: HTTP cleartext is allowed so the emulator can reach
 `http://10.0.2.2:4000`. Prod flavor forbids cleartext.
 
+Google Sign-In needs Android OAuth clients (package + SHA-1) and a Web client
+(`GOOGLE_WEB_CLIENT_ID` / `serverClientId`) in the **manasshe2@gmail.com** GCP
+project. See [README.md](README.md#google-sign-in--sign-up).
+
 ## Play Console listing (placeholders)
 
 Fill these in Console before the first production upload. None are hosted yet.

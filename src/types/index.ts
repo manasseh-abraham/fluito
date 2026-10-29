@@ -1,7 +1,9 @@
 export interface User {
   id: number;
   email: string;
-  password_hash: string;
+  password_hash?: string | null;
+  auth_provider?: 'password' | 'google' | 'both';
+  google_sub?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -11,8 +13,8 @@ export interface Profile {
   user_id: number;
   first_name: string;
   last_name: string;
-  date_of_birth: string;
-  gender: 'male' | 'female';
+  date_of_birth?: string | null;
+  gender?: 'male' | 'female' | null;
   denomination?: string;
   church_name?: string;
   location_city?: string;

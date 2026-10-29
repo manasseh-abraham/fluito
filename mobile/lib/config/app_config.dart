@@ -17,12 +17,15 @@
 /// # Production host is TBD — do not invent one.
 /// flutter build appbundle --flavor prod \
 ///   --dart-define=FLAVOR=prod \
-///   --dart-define=API_BASE_URL=https://REPLACE-ME
+///   --dart-define=API_BASE_URL=https://REPLACE-ME \
+///   --dart-define=GOOGLE_WEB_CLIENT_ID=619885353175-l00am55pa3j7rc1a5h3pcmqhhhldh3um.apps.googleusercontent.com
 /// ```
 class AppConfig {
   const AppConfig({
     required this.flavor,
     required this.apiRoot,
+    this.googleWebClientId = defaultGoogleWebClientId,
+    this.googleAndroidClientId = defaultGoogleAndroidDevClientId,
   });
 
   final AppFlavor flavor;
@@ -31,12 +34,21 @@ class AppConfig {
   /// Example: `https://api.fluito.veritas.org.in`
   final String apiRoot;
 
+  /// Web OAuth client ID (`serverClientId`). ID token `aud` on the API.
+  /// GCP project `fluito` / manasshe2@gmail.com.
+  final String googleWebClientId;
+
+  /// Android OAuth client ID for this flavor (package + SHA-1).
+  /// The plugin uses [googleWebClientId] as `serverClientId`.
+  final String googleAndroidClientId;
+
   /// REST prefix matching API_DOCUMENTATION.md (`/api`).
   String get apiBase => '$apiRoot/api';
 
   bool get isDev => flavor == AppFlavor.dev;
   bool get isProd => flavor == AppFlavor.prod;
   bool get hasApiRoot => apiRoot.isNotEmpty;
+  bool get hasGoogleSignIn => googleWebClientId.trim().isNotEmpty;
 
   /// Default used when [FLAVOR] is `dev` and [API_BASE_URL] is omitted.
   /// Hosted Fluito development API. Override with `--dart-define=API_BASE_URL`
@@ -47,19 +59,52 @@ class AppConfig {
   /// `--dart-define=FLAVOR=prod` without `API_BASE_URL` is a configuration error.
   static const defaultProdApiRoot = '';
 
+  /// Web client (`serverClientId` / ID token audience). Public client ID, not a secret.
+  static const defaultGoogleWebClientId =
+      '619885353175-l00am55pa3j7rc1a5h3pcmqhhhldh3um.apps.googleusercontent.com';
+
+  /// Android debug client — package `co.iotready.fluito.dev`.
+  static const defaultGoogleAndroidDevClientId =
+      '619885353175-gokhfp6tmp623b2r0s796dhnq5l6jk1f.apps.googleusercontent.com';
+
+  /// Android prod client — package `co.iotready.fluito`.
+  static const defaultGoogleAndroidProdClientId =
+      '619885353175-4u1nq6ibb3iee4b70mllfh343o71qmnj.apps.googleusercontent.com';
+
   /// Reads `--dart-define` values injected at compile time.
   factory AppConfig.fromEnvironment() {
     const flavorRaw = String.fromEnvironment('FLAVOR', defaultValue: 'dev');
     const override = String.fromEnvironment('API_BASE_URL');
+    const googleWeb = String.fromEnvironment(
+      'GOOGLE_WEB_CLIENT_ID',
+      defaultValue: defaultGoogleWebClientId,
+    );
+    const googleAndroid = String.fromEnvironment('GOOGLE_ANDROID_CLIENT_ID');
+    const googleAndroidDev = String.fromEnvironment(
+      'GOOGLE_ANDROID_DEV_CLIENT_ID',
+      defaultValue: defaultGoogleAndroidDevClientId,
+    );
+    const googleAndroidProd = String.fromEnvironment(
+      'GOOGLE_ANDROID_PROD_CLIENT_ID',
+      defaultValue: defaultGoogleAndroidProdClientId,
+    );
     final flavor = AppFlavor.parse(flavorRaw);
 
     final raw = override.trim().isNotEmpty
         ? override
         : (flavor == AppFlavor.prod ? defaultProdApiRoot : defaultDevApiRoot);
 
+    final androidId = googleAndroid.trim().isNotEmpty
+        ? googleAndroid.trim()
+        : (flavor == AppFlavor.prod
+            ? googleAndroidProd.trim()
+            : googleAndroidDev.trim());
+
     return AppConfig(
       flavor: flavor,
       apiRoot: normalizeApiRoot(raw),
+      googleWebClientId: googleWeb.trim(),
+      googleAndroidClientId: androidId,
     );
   }
 

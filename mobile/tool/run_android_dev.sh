@@ -7,6 +7,6 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 API_BASE_URL="${API_BASE_URL:-https://api.fluito.veritas.org.in}"
 exec flutter run --flavor dev \
-  --dart-define=FLAVOR=dev \
+  --dart-define-from-file=config/dev.json \
   --dart-define=API_BASE_URL="$API_BASE_URL" \
   "$@"

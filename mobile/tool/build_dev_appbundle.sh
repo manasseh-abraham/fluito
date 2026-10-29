@@ -12,5 +12,5 @@ if [[ -z "${API_BASE_URL:-}" ]]; then
   exit 1
 fi
 exec flutter build appbundle --flavor dev --release \
-  --dart-define=FLAVOR=dev \
+  --dart-define-from-file=config/dev.json \
   --dart-define=API_BASE_URL="$API_BASE_URL"

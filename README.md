@@ -4,7 +4,7 @@ A dating app specifically designed for Christian Pentecostals, built with BunJS 
 
 ## Features
 
-- 🔐 User authentication (register/login with JWT)
+- 🔐 User authentication (email/password + Google Sign-In / Sign-Up, JWT)
 - 👤 User profiles with Christian-specific fields (denomination, church name)
 - 💑 Matching system with swipe functionality
 - 💬 Messaging between matched users
@@ -31,7 +31,8 @@ A dating app specifically designed for Christian Pentecostals, built with BunJS 
 ### Mobile (Android)
 - **Framework**: Flutter (`mobile/`)
 - **Application id**: `co.iotready.fluito` (dev flavor: `co.iotready.fluito.dev`)
-- **API host**: compile-time `--dart-define=API_BASE_URL` (defaults to the **dev** server `http://10.0.2.2:4000` for the Android emulator). Production URL is TBD.
+- **API host**: compile-time `--dart-define=API_BASE_URL` (defaults to the **dev** server `https://api.fluito.veritas.org.in`). Production URL is TBD.
+- **Google Sign-In**: Web `serverClientId` `619885353175-l00am55pa3j7rc1a5h3pcmqhhhldh3um.apps.googleusercontent.com` plus Android clients for `co.iotready.fluito.dev` and `co.iotready.fluito`. OAuth and Drive under **manasshe2@gmail.com** (GCP project `fluito`). No `client_secret` in-repo.
 
 ## Getting Started
 
@@ -87,6 +88,7 @@ The app will be available at `http://localhost:4000`
 
 - `POST /api/auth/register` - Register a new user
 - `POST /api/auth/login` - Login and get JWT token
+- `POST /api/auth/google` - Google Sign-In / Sign-Up (ID token → same JWT)
 
 ### Profiles
 
@@ -185,13 +187,16 @@ The first mobile slice lives in [`mobile/`](mobile/). It ports the web
 glassmorphism from `frontend/src/index.css` (there is no native iOS app in this
 repo) and talks to the same `/api` shapes.
 
-Android builds default to a **dev** API (`http://10.0.2.2:4000` on the
-emulator). Do not invent a production host.
+Android builds default to the hosted **dev** API
+(`https://api.fluito.veritas.org.in`). Do not invent a production host.
 
 ```bash
 cd mobile
 flutter run --flavor dev --dart-define-from-file=config/dev.json
 ```
+
+Google Sign-In client IDs, SHA-1, and Drive/OAuth account notes:
+[`mobile/README.md`](mobile/README.md#google-sign-in--sign-up).
 
 Play Store scaffolding, AAB instructions, and remaining blockers:
 [`mobile/PLAY_STORE.md`](mobile/PLAY_STORE.md).

@@ -4,12 +4,16 @@ import 'package:flutter/foundation.dart';
 
 import '../models/models.dart';
 import '../services/fluito_api.dart';
+import '../services/google_auth.dart';
 import '../theme/tokens.dart';
 
 class AuthController extends ChangeNotifier {
-  AuthController({required this.api});
+  AuthController({required this.api, this.googleAuth});
 
   final FluitoApi api;
+  final GoogleAuthGateway? googleAuth;
+
+  bool get googleEnabled => googleAuth?.isAvailable ?? false;
 
   /// True only while restoring a stored session on launch.
   /// Must not be used for login submit — that unmounted the login form
@@ -56,6 +60,42 @@ class AuthController extends ChangeNotifier {
 
   Future<bool> login(String email, String password) async {
     return _authAction(() => api.login(email: email, password: password));
+  }
+
+  Future<bool> continueWithGoogle() async {
+    final gateway = googleAuth;
+    if (gateway == null || !gateway.isAvailable) {
+      error =
+          'Google Sign-In is not configured. Set GOOGLE_WEB_CLIENT_ID via --dart-define.';
+      notifyListeners();
+      return false;
+    }
+    busy = true;
+    error = null;
+    notifyListeners();
+    try {
+      final idToken = await gateway.getIdToken();
+      await api.loginWithGoogle(idToken: idToken);
+      profile = await api.getProfile();
+      return true;
+    } on GoogleSignInCanceled {
+      return false;
+    } on GoogleAuthException catch (e) {
+      error = e.message;
+      return false;
+    } on ApiException catch (e) {
+      error = [
+        e.message,
+        if (e.details != null) e.details!.join(', '),
+      ].where((s) => s.isNotEmpty).join(' — ');
+      return false;
+    } catch (e) {
+      error = e.toString();
+      return false;
+    } finally {
+      busy = false;
+      notifyListeners();
+    }
   }
 
   Future<bool> register({

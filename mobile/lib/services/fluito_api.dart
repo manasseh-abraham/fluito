@@ -184,6 +184,25 @@ class FluitoApi {
     return result;
   }
 
+  /// Sign-in and sign-up share `POST /api/auth/google`.
+  Future<AuthResponse> loginWithGoogle({
+    required String idToken,
+    String? clientId,
+  }) async {
+    final json = await _send(
+      'POST',
+      '/auth/google',
+      body: {
+        'id_token': idToken,
+        if (clientId != null && clientId.isNotEmpty) 'client_id': clientId,
+      },
+    );
+    final result = AuthResponse.fromJson(json as Map<String, dynamic>);
+    await _persistToken(result.token);
+    currentUserId = result.user.id;
+    return result;
+  }
+
   Future<Profile> getProfile() async {
     final json = await _send('GET', '/profiles/me');
     final profile = Profile.fromJson(json as Map<String, dynamic>);

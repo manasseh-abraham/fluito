@@ -27,6 +27,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _denomPref = TextEditingController();
   String _preferredGender = 'both';
   bool _hydrated = false;
+  DateTime? _dob;
+  String? _gender;
 
   @override
   void initState() {
@@ -62,6 +64,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _city.text = profile.locationCity ?? '';
       _state.text = profile.locationState ?? '';
       _bio.text = profile.bio ?? '';
+      _gender = profile.gender.isEmpty ? null : profile.gender;
+      final parsedDob = DateTime.tryParse(profile.dateOfBirth);
+      _dob = parsedDob;
       _hydrated = true;
     }
     if (prefs.minAge != null && _minAge.text.isEmpty) {
@@ -151,6 +156,74 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 16),
               GlassField(controller: _last, label: 'Last Name'),
               const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _ProfileDateTile(
+                      label: _dob == null
+                          ? 'Date of birth'
+                          : '${_dob!.year.toString().padLeft(4, '0')}-${_dob!.month.toString().padLeft(2, '0')}-${_dob!.day.toString().padLeft(2, '0')}',
+                      muted: _dob == null,
+                      onTap: () async {
+                        final now = DateTime.now();
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: _dob ?? DateTime(now.year - 25),
+                          firstDate: DateTime(now.year - 100),
+                          lastDate: DateTime(now.year - 18),
+                        );
+                        if (picked != null) setState(() => _dob = picked);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Container(
+                      height: 52,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: FluitoTokens.glassInputFill,
+                        borderRadius:
+                            BorderRadius.circular(FluitoTokens.fieldRadius),
+                        border: Border.all(color: FluitoTokens.glassBorder),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          value: _gender,
+                          borderRadius: BorderRadius.circular(12),
+                          hint: const Text(
+                            'Gender',
+                            style: TextStyle(color: FluitoTokens.textSecondary),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'male',
+                              child: Text('Male'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'female',
+                              child: Text('Female'),
+                            ),
+                          ],
+                          onChanged: (v) {
+                            if (v != null) setState(() => _gender = v);
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Google accounts can fill date of birth and gender here later. They are not invented at sign-in.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: FluitoTokens.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 16),
               GlassField(
                 controller: _denomination,
                 label: 'Denomination',
@@ -188,6 +261,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         final updated = await profileState.saveProfile({
                           'first_name': _first.text.trim(),
                           'last_name': _last.text.trim(),
+                          if (_dob != null)
+                            'date_of_birth':
+                                '${_dob!.year.toString().padLeft(4, '0')}-${_dob!.month.toString().padLeft(2, '0')}-${_dob!.day.toString().padLeft(2, '0')}',
+                          if (_gender != null) 'gender': _gender,
                           'denomination': _denomination.text.trim(),
                           'church_name': _church.text.trim(),
                           'location_city': _city.text.trim(),
@@ -329,6 +406,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ProfileDateTile extends StatelessWidget {
+  const _ProfileDateTile({
+    required this.label,
+    required this.onTap,
+    this.muted = false,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final bool muted;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: FluitoTokens.glassInputFill,
+      borderRadius: BorderRadius.circular(FluitoTokens.fieldRadius),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(FluitoTokens.fieldRadius),
+        onTap: onTap,
+        child: Container(
+          height: 52,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(FluitoTokens.fieldRadius),
+            border: Border.all(color: FluitoTokens.glassBorder),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.cake_outlined,
+                size: 18,
+                color: FluitoTokens.textSecondary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: muted
+                        ? FluitoTokens.textSecondary
+                        : FluitoTokens.textPrimary,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

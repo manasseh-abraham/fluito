@@ -80,6 +80,19 @@ curl -X POST http://localhost:4000/api/auth/login \
   }'
 ```
 
+### 3b. Google Sign-In / Sign-Up
+
+Same path for new and returning Google users. `id_token` is a real Google ID
+token; `GOOGLE_CLIENT_IDS` on the API must include the Web client ID (`aud`).
+
+```bash
+curl -X POST http://localhost:4000/api/auth/google \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id_token": "GOOGLE_ID_TOKEN"
+  }'
+```
+
 Expected response:
 ```json
 {

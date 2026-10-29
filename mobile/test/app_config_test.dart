@@ -27,6 +27,16 @@ void main() {
     test('production default host is empty (TBD, not invented)', () {
       expect(AppConfig.defaultProdApiRoot, isEmpty);
     });
+
+    test('Google client IDs default to the Fluito GCP project clients', () {
+      final config = AppConfig.fromEnvironment();
+      expect(config.googleWebClientId, AppConfig.defaultGoogleWebClientId);
+      expect(
+        config.googleAndroidClientId,
+        AppConfig.defaultGoogleAndroidDevClientId,
+      );
+      expect(config.hasGoogleSignIn, isTrue);
+    });
   });
 
   group('AppFlavor.parse', () {

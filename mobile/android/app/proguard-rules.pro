@@ -20,3 +20,8 @@
 
 # Gson / JSON reflection is not used; Dart handles serialization.
 # image_picker / flutter_secure_storage keep their own consumer rules.
+
+# Google Sign-In / Play services (R8)
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.android.gms.**
+-keep class com.google.android.libraries.identity.** { *; }

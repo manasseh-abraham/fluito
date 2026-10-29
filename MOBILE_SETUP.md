@@ -3,7 +3,7 @@
 ## Current Status
 
 ✅ **Backend API (BunJS) - MVP Complete**
-- User authentication (register/login with JWT)
+- User authentication (register/login with JWT, plus Google Sign-In / Sign-Up)
 - User profiles with Christian-specific fields
 - Matching system (swipe functionality)
 - Messaging between matched users
@@ -140,6 +140,7 @@ class ApiService {
 ### Authentication
 - `POST /api/auth/register` - Register new user
 - `POST /api/auth/login` - Login and get JWT token
+- `POST /api/auth/google` - Google Sign-In / Sign-Up (ID token → same JWT as `/login`)
 
 ### Profiles
 - `GET /api/profiles/me` - Get current user's profile
@@ -165,6 +166,10 @@ PORT=4000
 JWT_SECRET=dev-secret-key
 DATABASE_PATH=./fluito.db
 NODE_ENV=development
+GOOGLE_CLIENT_IDS=619885353175-l00am55pa3j7rc1a5h3pcmqhhhldh3um.apps.googleusercontent.com,619885353175-gokhfp6tmp623b2r0s796dhnq5l6jk1f.apps.googleusercontent.com,619885353175-4u1nq6ibb3iee4b70mllfh343o71qmnj.apps.googleusercontent.com
+GOOGLE_WEB_CLIENT_ID=619885353175-l00am55pa3j7rc1a5h3pcmqhhhldh3um.apps.googleusercontent.com
+GOOGLE_ANDROID_DEV_CLIENT_ID=619885353175-gokhfp6tmp623b2r0s796dhnq5l6jk1f.apps.googleusercontent.com
+GOOGLE_ANDROID_PROD_CLIENT_ID=619885353175-4u1nq6ibb3iee4b70mllfh343o71qmnj.apps.googleusercontent.com
 ```
 
 ### Production
@@ -174,7 +179,35 @@ JWT_SECRET=your-strong-production-secret
 DATABASE_PATH=/var/lib/fluito/fluito.db
 NODE_ENV=production
 CORS_ORIGIN=https://your-mobile-app-domain.com
+GOOGLE_CLIENT_IDS=619885353175-l00am55pa3j7rc1a5h3pcmqhhhldh3um.apps.googleusercontent.com,619885353175-gokhfp6tmp623b2r0s796dhnq5l6jk1f.apps.googleusercontent.com,619885353175-4u1nq6ibb3iee4b70mllfh343o71qmnj.apps.googleusercontent.com
+GOOGLE_WEB_CLIENT_ID=619885353175-l00am55pa3j7rc1a5h3pcmqhhhldh3um.apps.googleusercontent.com
+GOOGLE_ANDROID_DEV_CLIENT_ID=619885353175-gokhfp6tmp623b2r0s796dhnq5l6jk1f.apps.googleusercontent.com
+GOOGLE_ANDROID_PROD_CLIENT_ID=619885353175-4u1nq6ibb3iee4b70mllfh343o71qmnj.apps.googleusercontent.com
 ```
+
+## Google Cloud / Drive account
+
+All Fluito Google Cloud OAuth clients **and** Drive uploads must live under
+**manasshe2@gmail.com** going forward (not `manasseh@iotready.co`).
+
+OAuth clients already created in GCP project `fluito` (public IDs only —
+never a `client_secret`):
+
+1. **Web** `619885353175-l00am55pa3j7rc1a5h3pcmqhhhldh3um.apps.googleusercontent.com` → Flutter `serverClientId` / `GOOGLE_WEB_CLIENT_ID`
+2. **Android debug** `619885353175-gokhfp6tmp623b2r0s796dhnq5l6jk1f.apps.googleusercontent.com` — package `co.iotready.fluito.dev` + debug SHA-1
+3. **Android prod** `619885353175-4u1nq6ibb3iee4b70mllfh343o71qmnj.apps.googleusercontent.com` — package `co.iotready.fluito` + upload/release SHA-1
+4. API `GOOGLE_CLIENT_IDS` = those three, comma-separated (parent deploys to the VPS)
+
+Print debug SHA-1:
+
+```bash
+keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
+```
+
+Existing databases: `bun run db:migrate` (or just start the API) adds
+`users.auth_provider`, `users.google_sub`, and makes `users.password_hash`,
+`profiles.date_of_birth`, and `profiles.gender` nullable so Google-created
+users can log in before they finish profile fields.
 
 ## Deployment Options
 

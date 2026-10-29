@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { db } from '../db/database';
 import { authMiddleware } from '../middleware/auth';
+import { ageFromDob } from '../utils/age';
 import { profileUpdateSchema, preferencesSchema } from '../utils/validation';
 import { join } from 'path';
 import { mkdir, writeFile, unlink } from 'fs/promises';
@@ -48,16 +49,9 @@ profileRoutes.get('/me', (c) => {
     return c.json({ error: 'Profile not found' }, 404);
   }
 
-  // Calculate age
-  const birthDate = new Date(profile.date_of_birth);
-  const today = new Date();
-  const age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-  const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) ? age - 1 : age;
-
   return c.json({
     ...profile,
-    age: actualAge,
+    age: ageFromDob(profile.date_of_birth),
   });
 });
 
@@ -320,16 +314,9 @@ profileRoutes.get('/:userId', (c) => {
     return c.json({ error: 'Profile not found' }, 404);
   }
 
-  // Calculate age
-  const birthDate = new Date(profile.date_of_birth);
-  const today = new Date();
-  const age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-  const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) ? age - 1 : age;
-
   return c.json({
     ...profile,
-    age: actualAge,
+    age: ageFromDob(profile.date_of_birth),
   });
 });
 

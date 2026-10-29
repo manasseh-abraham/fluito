@@ -42,6 +42,8 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Google Sign-In (Play services + account picker) -->
+        <package android:name="com.google.android.gms"/>
         <!-- image_picker gallery / camera intents -->
         <intent>
             <action android:name="android.intent.action.GET_CONTENT"/>
