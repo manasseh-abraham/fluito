@@ -209,6 +209,46 @@ Existing databases: `bun run db:migrate` (or just start the API) adds
 `profiles.date_of_birth`, and `profiles.gender` nullable so Google-created
 users can log in before they finish profile fields.
 
+## Demo seed data
+
+`src/db/seed.ts` upserts **only** these `@example.com` accounts. It never
+deletes or overwrites a Google / real user.
+
+```bash
+# Local (./fluito.db or DATABASE_PATH)
+bun run db:seed
+
+# Recreate demo rows only (safe on a live DB that also has Google users)
+bun run db:seed:force
+# same as: bun run src/db/seed.ts -- --force
+
+# Deployed SQLite on the VPS (parent runs this after pull)
+DATABASE_PATH=/var/lib/fluito/fluito.db bun run db:migrate
+DATABASE_PATH=/var/lib/fluito/fluito.db bun run db:seed
+```
+
+Password for every demo account: **`password123`**
+
+| Email | Gender | City | Notes |
+| --- | --- | --- | --- |
+| `john.doe@example.com` | male | New York | Matched + chat with Jane |
+| `michael.smith@example.com` | male | Los Angeles | Matched + chat with Sarah |
+| `david.johnson@example.com` | male | Chicago | Matched + chat with Emily |
+| `james.williams@example.com` | male | Houston | Pending like on Jane (Discover) |
+| `robert.brown@example.com` | male | Phoenix | Unmatched — on Discover |
+| `jane.smith@example.com` | female | New York | Matched + chat with John |
+| `sarah.johnson@example.com` | female | Los Angeles | Matched + chat with Michael |
+| `emily.davis@example.com` | female | Chicago | Matched + chat with David |
+| `jessica.miller@example.com` | female | Houston | Unmatched — on Discover |
+| `amanda.wilson@example.com` | female | Phoenix | Unmatched — on Discover |
+
+Profiles include HTTPS placeholder photos (`randomuser.me` portraits), bios
+with interests, ages, churches, and locations. There is no separate interests
+column — interests live in `bio`.
+
+Log in as Jane to see men on Discover plus John's thread; log in as John to
+see women plus Jane's thread. Google Sign-In accounts stay in the DB.
+
 ## Deployment Options
 
 ### Backend

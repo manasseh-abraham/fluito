@@ -134,6 +134,19 @@ Existing SQLite DBs need a schema migration (nullable `users.password_hash`,
 nullable `profiles.date_of_birth` / `gender`, plus `users.auth_provider` and
 `users.google_sub`). `bun run start` and `bun run db:migrate` both apply it.
 
+## Demo accounts (populated Discover / Matches / Messages)
+
+The API seed (`bun run db:seed`) upserts ten `@example.com` profiles with
+photos, bios, three matched conversations, and leftover Discover cards.
+Password for all of them: `password123`. Safe on a live DB — it never wipes
+Google-signed-in users. On the VPS:
+
+```bash
+DATABASE_PATH=/var/lib/fluito/fluito.db bun run db:seed
+```
+
+See the table in [`MOBILE_SETUP.md`](../MOBILE_SETUP.md#demo-seed-data).
+
 ## Screens (skeleton wired to documented API shapes)
 
 - Auth — login / register / Continue with Google, JWT in `flutter_secure_storage`, auto-restore

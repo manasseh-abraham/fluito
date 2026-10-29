@@ -63,6 +63,18 @@ Edit `.env` and set your `JWT_SECRET` and other configuration values.
 4. Initialize the database:
 The database will be automatically created when you start the server.
 
+Seed demo profiles so Discover / Matches / Messages are not empty
+(only `@example.com` accounts — never Google-signed-in users):
+
+```bash
+bun run db:seed              # upsert the 10 demo accounts + sample matches/messages
+bun run db:seed:force        # delete those demo emails only, then recreate
+# On the VPS:
+# DATABASE_PATH=/var/lib/fluito/fluito.db bun run db:seed
+```
+
+Every demo account uses password `password123`. See [MOBILE_SETUP.md](MOBILE_SETUP.md#demo-seed-data).
+
 5. Install frontend dependencies:
 ```bash
 cd frontend && npm install && cd ..
