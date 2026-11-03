@@ -45,6 +45,10 @@ class AppConfig {
   /// REST prefix matching API_DOCUMENTATION.md (`/api`).
   String get apiBase => '$apiRoot/api';
 
+  /// Public HTML pages served by the Bun app (not under `/api`).
+  String get privacyUrl => '$apiRoot/privacy';
+  String get termsUrl => '$apiRoot/terms';
+
   bool get isDev => flavor == AppFlavor.dev;
   bool get isProd => flavor == AppFlavor.prod;
   bool get hasApiRoot => apiRoot.isNotEmpty;
@@ -97,8 +101,8 @@ class AppConfig {
     final androidId = googleAndroid.trim().isNotEmpty
         ? googleAndroid.trim()
         : (flavor == AppFlavor.prod
-            ? googleAndroidProd.trim()
-            : googleAndroidDev.trim());
+              ? googleAndroidProd.trim()
+              : googleAndroidDev.trim());
 
     return AppConfig(
       flavor: flavor,

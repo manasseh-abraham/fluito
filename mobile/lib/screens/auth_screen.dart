@@ -3,7 +3,10 @@ import 'package:provider/provider.dart';
 
 import '../state/auth_controller.dart';
 import '../theme/tokens.dart';
+import '../utils/age_gate.dart';
 import '../widgets/glass.dart';
+import '../widgets/legal_links.dart';
+import '../widgets/profile_fields.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -57,11 +60,16 @@ class _AuthScreenState extends State<AuthScreen> {
       return;
     }
     if (_password.text.length < 8) {
-      setState(() => _localError = 'Password must be at least 8 characters long');
+      setState(
+        () => _localError = 'Password must be at least 8 characters long',
+      );
       return;
     }
-    final dob =
-        '${_dob!.year.toString().padLeft(4, '0')}-${_dob!.month.toString().padLeft(2, '0')}-${_dob!.day.toString().padLeft(2, '0')}';
+    if (!AgeGate.isAtLeast18(_dob!)) {
+      setState(() => _localError = AgeGate.underageMessage);
+      return;
+    }
+    final dob = AgeGate.isoDate(_dob!);
     await auth.register(
       email: _email.text.trim(),
       password: _password.text,
@@ -70,17 +78,6 @@ class _AuthScreenState extends State<AuthScreen> {
       dateOfBirth: dob,
       gender: _gender!,
     );
-  }
-
-  Future<void> _pickDob() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime(now.year - 25),
-      firstDate: DateTime(now.year - 100),
-      lastDate: DateTime(now.year - 18),
-    );
-    if (picked != null) setState(() => _dob = picked);
   }
 
   @override
@@ -203,9 +200,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     GlassField(
                       controller: _password,
                       focusNode: _passwordFocus,
-                      hint: _login
-                          ? 'Password'
-                          : 'Password (min 8 characters)',
+                      hint: _login ? 'Password' : 'Password (min 8 characters)',
                       prefixIcon: Icons.lock_outline_rounded,
                       obscure: true,
                       keyboardType: TextInputType.visiblePassword,
@@ -220,30 +215,36 @@ class _AuthScreenState extends State<AuthScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child: _PickerTile(
-                              label: _dob == null
-                                  ? 'Date of birth'
-                                  : '${_dob!.year}-${_dob!.month.toString().padLeft(2, '0')}-${_dob!.day.toString().padLeft(2, '0')}',
-                              muted: _dob == null,
-                              icon: Icons.cake_outlined,
-                              onTap: _pickDob,
+                            child: DobPickerTile(
+                              value: _dob,
+                              onPicked: (v) => setState(() => _dob = v),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: _GenderSelect(
+                            child: GenderSelect(
                               value: _gender,
                               onChanged: (v) => setState(() => _gender = v),
                             ),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'You must be 18 or older.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: FluitoTokens.textSecondary,
+                        ),
+                      ),
                     ],
                     const SizedBox(height: 20),
                     GlassButton(
                       label: _login
                           ? (auth.busy ? 'Signing in…' : 'Sign In')
-                          : (auth.busy ? 'Creating account…' : 'Create Account'),
+                          : (auth.busy
+                                ? 'Creating account…'
+                                : 'Create Account'),
                       busy: auth.busy,
                       onPressed: auth.busy ? null : _submit,
                     ),
@@ -258,7 +259,9 @@ class _AuthScreenState extends State<AuthScreen> {
                         icon: const _GoogleMark(),
                         onPressed: auth.busy
                             ? null
-                            : () => context.read<AuthController>().continueWithGoogle(),
+                            : () => context
+                                  .read<AuthController>()
+                                  .continueWithGoogle(),
                       ),
                     ],
                     const SizedBox(height: 16),
@@ -292,6 +295,8 @@ class _AuthScreenState extends State<AuthScreen> {
                       const SizedBox(height: 14),
                       GlassMessage(text: error),
                     ],
+                    const SizedBox(height: 16),
+                    const LegalLinks(),
                   ],
                 ),
               ),
@@ -346,96 +351,6 @@ class _GoogleMark extends StatelessWidget {
           fontWeight: FontWeight.w800,
           fontSize: 13,
           height: 1,
-        ),
-      ),
-    );
-  }
-}
-
-class _PickerTile extends StatelessWidget {
-  const _PickerTile({
-    required this.label,
-    required this.onTap,
-    required this.icon,
-    this.muted = false,
-  });
-
-  final String label;
-  final VoidCallback onTap;
-  final IconData icon;
-  final bool muted;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: FluitoTokens.glassInputFill,
-      borderRadius: BorderRadius.circular(FluitoTokens.fieldRadius),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(FluitoTokens.fieldRadius),
-        onTap: onTap,
-        child: Container(
-          height: 52,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(FluitoTokens.fieldRadius),
-            border: Border.all(color: FluitoTokens.glassBorder),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, size: 18, color: FluitoTokens.textSecondary),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  label,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: muted
-                        ? FluitoTokens.textSecondary
-                        : FluitoTokens.textPrimary,
-                    fontSize: 15,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _GenderSelect extends StatelessWidget {
-  const _GenderSelect({required this.value, required this.onChanged});
-
-  final String? value;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 52,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: FluitoTokens.glassInputFill,
-        borderRadius: BorderRadius.circular(FluitoTokens.fieldRadius),
-        border: Border.all(color: FluitoTokens.glassBorder),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          isExpanded: true,
-          value: value,
-          borderRadius: BorderRadius.circular(12),
-          hint: const Text(
-            'Gender',
-            style: TextStyle(color: FluitoTokens.textSecondary),
-          ),
-          items: const [
-            DropdownMenuItem(value: 'male', child: Text('Male')),
-            DropdownMenuItem(value: 'female', child: Text('Female')),
-          ],
-          onChanged: (v) {
-            if (v != null) onChanged(v);
-          },
         ),
       ),
     );

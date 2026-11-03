@@ -20,5 +20,10 @@ void main() {
     ),
   );
 
-  runApp(FluitoApp(config: config, api: FluitoApi(config: config)));
+  runApp(
+    FluitoApp(
+      config: config,
+      api: FluitoApi(config: config),
+    ),
+  );
 }

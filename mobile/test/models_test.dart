@@ -59,8 +59,48 @@ void main() {
     expect(message.content, contains('Great to match'));
   });
 
+  test('Profile needs onboarding when Google left DOB/gender empty', () {
+    final incomplete = Profile.fromJson({
+      'id': 1,
+      'user_id': 1,
+      'first_name': 'New',
+      'last_name': 'Member',
+      'date_of_birth': null,
+      'gender': null,
+      'email': 'new@gmail.com',
+      'age': null,
+      'profile_complete': false,
+      'missing_required_fields': ['date_of_birth', 'gender'],
+    });
+    expect(incomplete.needsOnboarding, isTrue);
+    expect(incomplete.profileComplete, isFalse);
+    expect(incomplete.missingRequiredFields, contains('date_of_birth'));
+
+    final complete = Profile.fromJson({
+      'id': 1,
+      'user_id': 1,
+      'first_name': 'Jane',
+      'last_name': 'Smith',
+      'date_of_birth': '1992-05-15',
+      'gender': 'female',
+      'email': 'jane@example.com',
+      'age': 34,
+      'profile_complete': true,
+      'missing_required_fields': <String>[],
+    });
+    expect(complete.needsOnboarding, isFalse);
+  });
+
   test('SwipeResult reads matched flag', () {
-    expect(SwipeResult.fromJson({'message': "It's a match!", 'matched': true}).matched, isTrue);
-    expect(SwipeResult.fromJson({'message': 'Like recorded', 'matched': false}).matched, isFalse);
+    expect(
+      SwipeResult.fromJson({'message': "It's a match!", 'matched': true})
+          .matched,
+      isTrue,
+    );
+    expect(
+      SwipeResult.fromJson({'message': 'Like recorded', 'matched': false})
+          .matched,
+      isFalse,
+    );
   });
 }

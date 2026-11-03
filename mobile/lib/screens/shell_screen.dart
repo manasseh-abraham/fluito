@@ -42,9 +42,7 @@ class _ShellScreenState extends State<ShellScreen> {
           child: IndexedStack(
             index: _index,
             children: [
-              DiscoverScreen(
-                onMatched: () => setState(() => _index = 1),
-              ),
+              DiscoverScreen(onMatched: () => setState(() => _index = 1)),
               MatchesScreen(
                 onOpenChat: (matchId) {
                   setState(() {

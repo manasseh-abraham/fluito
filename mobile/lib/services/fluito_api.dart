@@ -84,6 +84,12 @@ class FluitoApi {
           headers: _headers(),
           body: body == null ? null : jsonEncode(body),
         );
+      case 'DELETE':
+        future = _http.delete(
+          uri,
+          headers: _headers(),
+          body: body == null ? null : jsonEncode(body),
+        );
       default:
         throw ApiException('Unsupported method $method');
     }
@@ -114,7 +120,10 @@ class FluitoApi {
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw ApiException(
-        _errorMessage(parsed, fallback: 'Request failed (${response.statusCode})'),
+        _errorMessage(
+          parsed,
+          fallback: 'Request failed (${response.statusCode})',
+        ),
         statusCode: response.statusCode,
         details: _errorDetails(parsed),
       );
@@ -131,14 +140,12 @@ class FluitoApi {
 
   List<String>? _errorDetails(dynamic parsed) {
     if (parsed is Map && parsed['details'] is List) {
-      return (parsed['details'] as List)
-          .map((item) {
-            if (item is Map && item['message'] != null) {
-              return item['message'].toString();
-            }
-            return item.toString();
-          })
-          .toList();
+      return (parsed['details'] as List).map((item) {
+        if (item is Map && item['message'] != null) {
+          return item['message'].toString();
+        }
+        return item.toString();
+      }).toList();
     }
     return null;
   }
@@ -251,7 +258,9 @@ class FluitoApi {
     final list = (json as Map)['matches'] as List? ?? const [];
     return list
         .whereType<Map>()
-        .map((item) => DiscoverProfile.fromJson(Map<String, dynamic>.from(item)))
+        .map(
+          (item) => DiscoverProfile.fromJson(Map<String, dynamic>.from(item)),
+        )
         .toList();
   }
 
@@ -278,6 +287,41 @@ class FluitoApi {
 
   Future<void> unmatch(int matchId) async {
     await _send('POST', '/matches/unmatch', body: {'match_id': matchId});
+  }
+
+  Future<void> blockUser({int? targetUserId, int? matchId}) async {
+    await _send(
+      'POST',
+      '/matches/block',
+      body: {
+        'target_user_id': ?targetUserId,
+        'match_id': ?matchId,
+      },
+    );
+  }
+
+  Future<void> reportUser({
+    int? reportedUserId,
+    int? matchId,
+    required String reason,
+    String? details,
+    bool block = true,
+  }) async {
+    await _send(
+      'POST',
+      '/reports',
+      body: {
+        'reported_user_id': ?reportedUserId,
+        'match_id': ?matchId,
+        'reason': reason,
+        if (details != null && details.isNotEmpty) 'details': details,
+        'block': block,
+      },
+    );
+  }
+
+  Future<void> deleteAccount() async {
+    await _send('DELETE', '/auth/account');
   }
 
   Future<List<ChatMessage>> getMessages(int matchId) async {

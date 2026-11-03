@@ -57,6 +57,15 @@ export interface Message {
   created_at: string;
 }
 
+export interface Report {
+  id: number;
+  reporter_id: number;
+  reported_user_id: number;
+  reason: string;
+  details?: string | null;
+  created_at: string;
+}
+
 export interface AuthRequest {
   email: string;
   password: string;

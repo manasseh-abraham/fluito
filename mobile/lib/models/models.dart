@@ -49,6 +49,8 @@ class Profile {
     this.locationCountry,
     this.bio,
     this.profilePictureUrl,
+    this.profileComplete,
+    this.missingRequiredFields = const [],
   });
 
   final int id;
@@ -66,8 +68,19 @@ class Profile {
   final String? locationCountry;
   final String? bio;
   final String? profilePictureUrl;
+  final bool? profileComplete;
+  final List<String> missingRequiredFields;
 
   String get displayName => '$firstName $lastName'.trim();
+
+  bool get needsOnboarding {
+    if (profileComplete == false) return true;
+    if (firstName.trim().isEmpty || lastName.trim().isEmpty) return true;
+    if (dateOfBirth.trim().isEmpty) return true;
+    if (gender != 'male' && gender != 'female') return true;
+    if (age > 0 && age < 18) return true;
+    return false;
+  }
 
   String get locationLabel {
     final parts = [
@@ -94,6 +107,14 @@ class Profile {
       locationCountry: json['location_country'] as String?,
       bio: json['bio'] as String?,
       profilePictureUrl: json['profile_picture_url'] as String?,
+      profileComplete: json['profile_complete'] is bool
+          ? json['profile_complete'] as bool
+          : null,
+      missingRequiredFields: json['missing_required_fields'] is List
+          ? (json['missing_required_fields'] as List)
+                .map((item) => item.toString())
+                .toList()
+          : const [],
     );
   }
 
@@ -120,16 +141,21 @@ class Profile {
     String? locationCountry,
     String? bio,
     String? profilePictureUrl,
+    String? dateOfBirth,
+    String? gender,
+    int? age,
+    bool? profileComplete,
+    List<String>? missingRequiredFields,
   }) {
     return Profile(
       id: id,
       userId: userId,
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
-      dateOfBirth: dateOfBirth,
-      gender: gender,
+      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
+      gender: gender ?? this.gender,
       email: email,
-      age: age,
+      age: age ?? this.age,
       denomination: denomination ?? this.denomination,
       churchName: churchName ?? this.churchName,
       locationCity: locationCity ?? this.locationCity,
@@ -137,6 +163,9 @@ class Profile {
       locationCountry: locationCountry ?? this.locationCountry,
       bio: bio ?? this.bio,
       profilePictureUrl: profilePictureUrl ?? this.profilePictureUrl,
+      profileComplete: profileComplete ?? this.profileComplete,
+      missingRequiredFields:
+          missingRequiredFields ?? this.missingRequiredFields,
     );
   }
 }

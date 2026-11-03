@@ -15,9 +15,7 @@ void main() {
       const MaterialApp(
         home: GlassBackground(
           palette: FluitoPalette.blue,
-          child: Center(
-            child: GlassCard(child: Text('glass-card')),
-          ),
+          child: Center(child: GlassCard(child: Text('glass-card'))),
         ),
       ),
     );
@@ -38,12 +36,13 @@ void main() {
     auth.booting = false;
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: ChangeNotifierProvider.value(
-            value: auth,
-            child: const AuthScreen(),
-          ),
+      MultiProvider(
+        providers: [
+          Provider<AppConfig>.value(value: config),
+          ChangeNotifierProvider<AuthController>.value(value: auth),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(body: AuthScreen()),
         ),
       ),
     );
@@ -52,6 +51,8 @@ void main() {
     expect(find.text('Find your God-fearing partner'), findsOneWidget);
     expect(find.text('Sign In'), findsWidgets);
     expect(find.text('Continue with Google'), findsNothing);
+    expect(find.text('Privacy Policy'), findsOneWidget);
+    expect(find.text('Terms of Service'), findsOneWidget);
     expect(find.byType(BackdropFilter), findsNothing);
     expect(find.byType(TextField), findsNWidgets(2));
 
@@ -73,7 +74,9 @@ void main() {
       apiRoot: 'https://api.fluito.veritas.org.in',
     );
     await tester.pumpWidget(
-      const MaterialApp(home: Scaffold(body: DevApiBanner(config: config))),
+      const MaterialApp(
+        home: Scaffold(body: DevApiBanner(config: config)),
+      ),
     );
     expect(find.textContaining('DEV'), findsOneWidget);
     expect(find.textContaining('api.fluito.veritas.org.in'), findsOneWidget);
@@ -98,12 +101,13 @@ void main() {
     auth.booting = false;
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: ChangeNotifierProvider.value(
-            value: auth,
-            child: const AuthScreen(),
-          ),
+      MultiProvider(
+        providers: [
+          Provider<AppConfig>.value(value: config),
+          ChangeNotifierProvider<AuthController>.value(value: auth),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(body: AuthScreen()),
         ),
       ),
     );

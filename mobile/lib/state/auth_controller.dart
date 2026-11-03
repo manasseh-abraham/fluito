@@ -27,6 +27,8 @@ class AuthController extends ChangeNotifier {
 
   bool get isAuthenticated => api.hasToken && profile != null;
 
+  bool get needsOnboarding => profile?.needsOnboarding ?? false;
+
   FluitoPalette get palette =>
       profile?.gender == 'female' ? FluitoPalette.pink : FluitoPalette.blue;
 
@@ -65,8 +67,7 @@ class AuthController extends ChangeNotifier {
   Future<bool> continueWithGoogle() async {
     final gateway = googleAuth;
     if (gateway == null || !gateway.isAvailable) {
-      error =
-          'Google Sign-In is not configured. Set GOOGLE_WEB_CLIENT_ID via --dart-define.';
+      error = 'Google Sign-In is not configured. Set GOOGLE_WEB_CLIENT_ID via --dart-define.';
       notifyListeners();
       return false;
     }
@@ -149,6 +150,52 @@ class AuthController extends ChangeNotifier {
       if (e.statusCode == 401) {
         await logout();
       }
+    }
+  }
+
+  Future<bool> completeOnboarding(Map<String, dynamic> body) async {
+    busy = true;
+    error = null;
+    notifyListeners();
+    try {
+      profile = await api.updateProfile(body);
+      if (profile?.needsOnboarding ?? true) {
+        error = 'Please enter your date of birth and gender. You must be 18 or older.';
+        return false;
+      }
+      return true;
+    } on ApiException catch (e) {
+      error = [
+        e.message,
+        if (e.details != null) e.details!.join(', '),
+      ].where((s) => s.isNotEmpty).join(' — ');
+      return false;
+    } catch (e) {
+      error = e.toString();
+      return false;
+    } finally {
+      busy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> deleteAccount() async {
+    busy = true;
+    error = null;
+    notifyListeners();
+    try {
+      await api.deleteAccount();
+      await logout();
+      return true;
+    } on ApiException catch (e) {
+      error = e.message;
+      return false;
+    } catch (e) {
+      error = e.toString();
+      return false;
+    } finally {
+      busy = false;
+      notifyListeners();
     }
   }
 

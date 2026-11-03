@@ -32,6 +32,11 @@ describe('Google auth schema migration', () => {
     expect(row.password_hash).toBeNull();
     expect(row.date_of_birth).toBeNull();
     expect(row.gender).toBeNull();
+
+    const reports = database
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'reports'")
+      .get() as { name: string } | undefined;
+    expect(reports?.name).toBe('reports');
   });
 
   test('migrates a legacy NOT NULL users/profiles schema', () => {

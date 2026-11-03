@@ -149,11 +149,12 @@ See the table in [`MOBILE_SETUP.md`](../MOBILE_SETUP.md#demo-seed-data).
 
 ## Screens (skeleton wired to documented API shapes)
 
-- Auth — login / register / Continue with Google, JWT in `flutter_secure_storage`, auto-restore
-- Discover — card + like / pass → `POST /api/matches/swipe`
-- Matches — list + unmatch
-- Messages — conversation list + polling chat
-- Profile — photo upload, Christian fields (denomination, church), preferences
+- Auth — login / register / Continue with Google, JWT in `flutter_secure_storage`, auto-restore. Privacy Policy and Terms links open `/privacy` and `/terms` on the API origin.
+- Onboarding — required after Google (or any login) if date of birth / gender / name are missing. Blocks Discover until `PATCH /profiles/me` succeeds (18+).
+- Discover — card + like / pass → `POST /api/matches/swipe`; Block / Report on the card
+- Matches — list + unmatch / block / report
+- Messages — conversation list + polling chat; Block / Report in the thread
+- Profile — photo upload, Christian fields, preferences, Delete account (type `DELETE`)
 
 ## Glass UI
 

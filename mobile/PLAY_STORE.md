@@ -98,10 +98,10 @@ Fill these in Console before the first production upload. None are hosted yet.
 
 | Listing field | Placeholder / notes |
 | --- | --- |
-| Privacy policy URL | `https://EXAMPLE.com/privacy` — **must be a live HTTPS page** before review. Dating apps are scrutinized; document account data, photos, messages, and JWT identifiers. |
+| Privacy policy URL | `https://api.fluito.veritas.org.in/privacy` (served by the Bun API). Companion terms: `https://api.fluito.veritas.org.in/terms`. Do not invent a `fluito.app` host until DNS exists. |
 | App category | Dating |
 | Content rating | Complete the IARC questionnaire. Expect **Mature 17+** / similar: the app is a dating service for adults (18+). Do **not** claim “everyone”. |
-| Target audience | 18+ only. Registration already requires date of birth. |
+| Target audience | 18+ only. Registration, Google onboarding, and profile DOB updates reject under-18. |
 | Ads | None in this skeleton. |
 | News / COVID / government | No. |
 | Data safety | See below. |
@@ -122,15 +122,15 @@ financial info.
 Encryption in transit: HTTPS **once a production host exists**. Dev HTTP is
 emulator/LAN only.
 
-User requests to delete: **not implemented** — required for Play’s account
-deletion policy before production.
+User requests to delete: **implemented** — Profile → Delete account (type
+`DELETE`) calls `DELETE /api/auth/account`, which removes the user and
+cascaded data, then clears the on-device JWT.
 
 ## Content rating / policy notes for a Christian dating app
 
 - 18+; no sexual/explicit imagery in the client (respectful glass UI).
-- User-generated photos and chat will be reviewed under UGC rules: you will
-  need in-app reporting / blocking before a broad production launch
-  (`MOBILE_SETUP.md` lists this as future work).
+- User-generated photos and chat: in-app **Block** and **Report** are on
+  Discover, Matches, and chat (reason picker; report also blocks).
 - Store listing copy should match the product: faith-based matching, not a
   hookup app. Avoid implying church endorsement unless you have it.
 
@@ -153,8 +153,11 @@ before Play.
 2. **Real upload keystore** — generate, store offline, put Play “App signing”
    certificate in Console.
 3. **Play Console developer account** — $25 one-time, identity verification.
-4. **Hosted privacy policy** — live URL; cannot be a placeholder at review.
-5. **Account deletion + reporting/blocking** — Play policy for dating / UGC.
+4. **Hosted privacy policy** — use `https://api.fluito.veritas.org.in/privacy`
+   (and `/terms`) once that API deploy includes these pages. Still blocked on
+   a production domain if you want a `fluito.app` URL in Console.
+5. **Account deletion + reporting/blocking** — implemented in this app/API
+   slice; still confirm they are on the hosted API before a production upload.
 6. **Store assets** — 1080×1920 phone screenshots, short description, feature
    graphic 1024×500.
 7. **Backend production hardening** — strong `JWT_SECRET`, HTTPS, backups,

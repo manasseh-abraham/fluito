@@ -6,10 +6,14 @@ A dating app specifically designed for Christian Pentecostals, built with BunJS 
 
 - 🔐 User authentication (email/password + Google Sign-In / Sign-Up, JWT)
 - 👤 User profiles with Christian-specific fields (denomination, church name)
+- ✅ Required onboarding when Google (or any login) is missing date of birth / gender
 - 💑 Matching system with swipe functionality
+- 🚫 Block and report (UGC safety)
 - 💬 Messaging between matched users
 - 🎯 Discovery based on preferences (age, gender, denomination, location)
 - ⚙️ User preferences for match filtering
+- 🗑️ Account deletion (cascades profile, matches, messages, photos)
+- 📜 Privacy Policy `/privacy` and Terms `/terms` (18+ only)
 
 ## Tech Stack
 
@@ -98,23 +102,34 @@ The app will be available at `http://localhost:4000`
 
 ### Authentication
 
-- `POST /api/auth/register` - Register a new user
+- `POST /api/auth/register` - Register a new user (18+ date of birth required)
 - `POST /api/auth/login` - Login and get JWT token
 - `POST /api/auth/google` - Google Sign-In / Sign-Up (ID token → same JWT)
+- `DELETE /api/auth/account` - Permanently delete the signed-in account
+
+### Legal (HTML, not under `/api`)
+
+- `GET /privacy` - Privacy Policy
+- `GET /terms` - Terms of Service
+
+Hosted until `fluito.app` DNS exists: `https://api.fluito.veritas.org.in/privacy` and `.../terms`.
 
 ### Profiles
 
-- `GET /api/profiles/me` - Get current user's profile
-- `PATCH /api/profiles/me` - Update current user's profile
+- `GET /api/profiles/me` - Get current user's profile (`profile_complete`, `missing_required_fields`)
+- `PATCH /api/profiles/me` - Update current user's profile (rejects under-18 DOB)
 - `GET /api/profiles/me/preferences` - Get user preferences
 - `PATCH /api/profiles/me/preferences` - Update user preferences
 - `GET /api/profiles/:userId` - Get another user's profile
 
 ### Matches
 
-- `GET /api/matches/discover` - Discover potential matches
+- `GET /api/matches/discover` - Discover potential matches (403 if profile incomplete; hides blocked users)
 - `POST /api/matches/swipe` - Swipe right (like) or left (reject)
 - `GET /api/matches/matches` - Get all matched users
+- `POST /api/matches/unmatch` - Soft-unmatch
+- `POST /api/matches/block` - Block a user
+- `POST /api/reports` - Report a user (blocks by default)
 
 ### Messages
 
@@ -192,6 +207,7 @@ The app uses SQLite with the following main tables:
 - `preferences` - User matching preferences
 - `matches` - Match records (pending, matched, rejected, blocked)
 - `messages` - Messages between matched users
+- `reports` - User-submitted reports (reporter, reported user, reason, details)
 
 ## Android (Flutter)
 

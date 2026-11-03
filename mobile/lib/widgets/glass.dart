@@ -62,10 +62,7 @@ class _OrbPainter extends CustomPainter {
     void blob(Offset c, double r, Color color) {
       final paint = Paint()
         ..shader = RadialGradient(
-          colors: [
-            color.withValues(alpha: 0.55),
-            color.withValues(alpha: 0.0),
-          ],
+          colors: [color.withValues(alpha: 0.55), color.withValues(alpha: 0.0)],
         ).createShader(Rect.fromCircle(center: c, radius: r));
       canvas.drawCircle(c, r, paint);
     }
@@ -109,9 +106,7 @@ class GlassSurface extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: radius,
         border: Border.all(
-          color: highlighted
-              ? FluitoTokens.primary
-              : FluitoTokens.glassBorder,
+          color: highlighted ? FluitoTokens.primary : FluitoTokens.glassBorder,
           width: highlighted ? 1.6 : 1,
         ),
         gradient: const LinearGradient(
@@ -142,11 +137,7 @@ class GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final card = GlassSurface(
-      width: width,
-      padding: padding,
-      child: child,
-    );
+    final card = GlassSurface(width: width, padding: padding, child: child);
     if (onTap == null) return card;
     return Material(
       color: Colors.transparent,
@@ -276,10 +267,7 @@ class GlassAppBar extends StatelessWidget {
           height: 40,
           child: Row(
             children: [
-              if (leading != null) ...[
-                leading!,
-                const SizedBox(width: 8),
-              ],
+              if (leading != null) ...[leading!, const SizedBox(width: 8)],
               GradientWordmark(fontSize: 22, text: title),
               const Spacer(),
               ...?actions,
@@ -351,8 +339,10 @@ class GlassButton extends StatelessWidget {
               constraints: const BoxConstraints(minHeight: 52),
               child: Center(
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 14,
+                  ),
                   child: busy
                       ? SizedBox(
                           width: 22,
@@ -436,7 +426,8 @@ class GlassField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hideAssist = obscure ||
+    final hideAssist =
+        obscure ||
         keyboardType == TextInputType.emailAddress ||
         keyboardType == TextInputType.visiblePassword;
 
@@ -458,13 +449,15 @@ class GlassField extends StatelessWidget {
           focusNode: focusNode,
           enabled: enabled,
           obscureText: obscure,
-          keyboardType: keyboardType ??
+          keyboardType:
+              keyboardType ??
               (obscure
                   ? TextInputType.visiblePassword
                   : (maxLines > 1
-                      ? TextInputType.multiline
-                      : TextInputType.text)),
-          textInputAction: textInputAction ??
+                        ? TextInputType.multiline
+                        : TextInputType.text)),
+          textInputAction:
+              textInputAction ??
               (maxLines > 1 ? TextInputAction.newline : TextInputAction.next),
           maxLines: obscure ? 1 : maxLines,
           maxLength: maxLength,
@@ -629,11 +622,7 @@ class EmptyState extends StatelessWidget {
 }
 
 class GradientWordmark extends StatelessWidget {
-  const GradientWordmark({
-    super.key,
-    this.fontSize = 48,
-    this.text = 'Fluito',
-  });
+  const GradientWordmark({super.key, this.fontSize = 48, this.text = 'Fluito'});
 
   final double fontSize;
   final String text;
@@ -710,11 +699,7 @@ class ProfilePhoto extends StatelessWidget {
 }
 
 class PageHeader extends StatelessWidget {
-  const PageHeader({
-    super.key,
-    required this.title,
-    this.trailing,
-  });
+  const PageHeader({super.key, required this.title, this.trailing});
 
   final String title;
   final Widget? trailing;

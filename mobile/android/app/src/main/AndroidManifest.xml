@@ -44,6 +44,15 @@
         </intent>
         <!-- Google Sign-In (Play services + account picker) -->
         <package android:name="com.google.android.gms"/>
+        <!-- Privacy Policy / Terms of Service in the system browser -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="http"/>
+        </intent>
         <!-- image_picker gallery / camera intents -->
         <intent>
             <action android:name="android.intent.action.GET_CONTENT"/>

@@ -3,9 +3,11 @@ import { cors } from 'hono/cors';
 import { serveStatic } from 'hono/bun';
 import { initializeDatabase } from './db/database';
 import { authRoutes } from './routes/auth';
+import { legalRoutes } from './routes/legal';
 import { profileRoutes } from './routes/profiles';
 import { matchRoutes } from './routes/matches';
 import { messageRoutes } from './routes/messages';
+import { reportRoutes } from './routes/reports';
 import { rateLimitMiddleware } from './middleware/rateLimit';
 
 // Initialize database
@@ -36,11 +38,15 @@ app.get('/api', (c) => {
   });
 });
 
+// Public legal pages (before the Vite SPA catch-all)
+app.route('/', legalRoutes);
+
 // API routes
 app.route('/api/auth', authRoutes);
 app.route('/api/profiles', profileRoutes);
 app.route('/api/matches', matchRoutes);
 app.route('/api/messages', messageRoutes);
+app.route('/api/reports', reportRoutes);
 
 // Serve uploaded files
 app.use('/uploads/*', serveStatic({ root: './' }));

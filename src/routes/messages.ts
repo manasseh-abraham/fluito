@@ -17,12 +17,22 @@ messageRoutes.get('/match/:matchId', (c) => {
   const userId = c.get('userId') as number;
   const matchId = parseInt(c.req.param('matchId'));
 
-  // Verify user is part of this match
+  // Verify user is part of this match and it is still an active match.
   const match = db
-    .prepare('SELECT * FROM matches WHERE id = ? AND (user1_id = ? OR user2_id = ?)')
+    .prepare(
+      'SELECT * FROM matches WHERE id = ? AND (user1_id = ? OR user2_id = ?) AND status = "matched"'
+    )
     .get(matchId, userId, userId) as any;
 
   if (!match) {
+    const blocked = db
+      .prepare(
+        'SELECT id FROM matches WHERE id = ? AND (user1_id = ? OR user2_id = ?) AND status = "blocked"'
+      )
+      .get(matchId, userId, userId) as { id: number } | undefined;
+    if (blocked) {
+      return c.json({ error: 'You cannot message this user' }, 403);
+    }
     return c.json({ error: 'Match not found' }, 404);
   }
 
@@ -68,6 +78,14 @@ messageRoutes.post('/match/:matchId', async (c) => {
       .get(matchId, userId, userId) as any;
 
     if (!match) {
+      const blocked = db
+        .prepare(
+          'SELECT id FROM matches WHERE id = ? AND (user1_id = ? OR user2_id = ?) AND status = "blocked"'
+        )
+        .get(matchId, userId, userId) as { id: number } | undefined;
+      if (blocked) {
+        return c.json({ error: 'You cannot message this user' }, 403);
+      }
       return c.json({ error: 'Match not found or not matched' }, 404);
     }
 

@@ -5,6 +5,7 @@ import '../config/app_config.dart';
 import '../state/auth_controller.dart';
 import '../state/matches_controller.dart';
 import '../theme/tokens.dart';
+import '../widgets/block_report.dart';
 import '../widgets/glass.dart';
 
 class MatchesScreen extends StatefulWidget {
@@ -39,124 +40,200 @@ class _MatchesScreenState extends State<MatchesScreen> {
           child: matches.loading
               ? const Center(child: CircularProgressIndicator())
               : matches.matches.isEmpty
-                  ? const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: EmptyState(
-                        icon: Icons.favorite_outline,
-                        message: 'No matches yet. Start swiping to find your match!',
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                      itemCount: matches.matches.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 16),
-                      itemBuilder: (context, index) {
-                        final item = matches.matches[index];
-                        return GlassCard(
-                          onTap: () => widget.onOpenChat(item.matchId),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+              ? const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: EmptyState(
+                    icon: Icons.favorite_outline,
+                    message:
+                        'No matches yet. Start swiping to find your match!',
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  itemCount: matches.matches.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 16),
+                  itemBuilder: (context, index) {
+                    final item = matches.matches[index];
+                    return GlassCard(
+                      onTap: () => widget.onOpenChat(item.matchId),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Stack(
                             children: [
-                              Stack(
-                                children: [
-                                  ProfilePhoto(
-                                    url: (item.profilePictureUrl == null ||
-                                            item.profilePictureUrl!.isEmpty)
+                              ProfilePhoto(
+                                url:
+                                    (item.profilePictureUrl == null ||
+                                        item.profilePictureUrl!.isEmpty)
+                                    ? null
+                                    : config.resolveMedia(
+                                        item.profilePictureUrl,
+                                      ),
+                                width: double.infinity,
+                                height: 200,
+                                borderRadius: BorderRadius.circular(16),
+                                palette: palette,
+                                fallback: const Text(
+                                  '💑',
+                                  style: TextStyle(fontSize: 64),
+                                ),
+                              ),
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: Material(
+                                  color: const Color.fromRGBO(255, 59, 48, 0.2),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    side: const BorderSide(
+                                      color: Color.fromRGBO(255, 59, 48, 0.4),
+                                    ),
+                                  ),
+                                  child: InkWell(
+                                    onTap: matches.unmatchingId == item.matchId
                                         ? null
-                                        : config.resolveMedia(
-                                            item.profilePictureUrl,
-                                          ),
-                                    width: double.infinity,
-                                    height: 200,
-                                    borderRadius: BorderRadius.circular(16),
-                                    palette: palette,
-                                    fallback: const Text(
-                                      '💑',
-                                      style: TextStyle(fontSize: 64),
-                                    ),
-                                  ),
-                                  Positioned(
-                                    top: 8,
-                                    right: 8,
-                                    child: Material(
-                                      color: const Color.fromRGBO(
-                                        255,
-                                        59,
-                                        48,
-                                        0.2,
+                                        : () async {
+                                            await showModalBottomSheet<void>(
+                                              context: context,
+                                              backgroundColor:
+                                                  Colors.transparent,
+                                              builder: (sheetContext) {
+                                                return Padding(
+                                                  padding:
+                                                      const EdgeInsets.fromLTRB(
+                                                        16,
+                                                        0,
+                                                        16,
+                                                        24,
+                                                      ),
+                                                  child: GlassCard(
+                                                    child: Column(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        ListTile(
+                                                          leading: const Icon(
+                                                            Icons
+                                                                .heart_broken_outlined,
+                                                          ),
+                                                          title: const Text(
+                                                            'Unmatch',
+                                                          ),
+                                                          onTap: () async {
+                                                            Navigator.pop(
+                                                              sheetContext,
+                                                            );
+                                                            final ok =
+                                                                await confirmDestructive(
+                                                                  context,
+                                                                  title:
+                                                                      'Unmatch ${item.displayName}?',
+                                                                  body: 'You will no longer see each other in Matches or chat.',
+                                                                  confirmLabel:
+                                                                      'Unmatch',
+                                                                );
+                                                            if (ok) {
+                                                              await matches
+                                                                  .unmatch(
+                                                                    item.matchId,
+                                                                  );
+                                                            }
+                                                          },
+                                                        ),
+                                                        ListTile(
+                                                          leading: const Icon(
+                                                            Icons.more_horiz,
+                                                          ),
+                                                          title: const Text(
+                                                            'Block or report',
+                                                          ),
+                                                          onTap: () {
+                                                            Navigator.pop(
+                                                              sheetContext,
+                                                            );
+                                                            showSafetyActions(
+                                                              context,
+                                                              displayName: item
+                                                                  .displayName,
+                                                              onBlock: () =>
+                                                                  matches
+                                                                      .blockMatch(
+                                                                        item,
+                                                                      ),
+                                                              onReport:
+                                                                  (
+                                                                    reason,
+                                                                    details,
+                                                                  ) => matches
+                                                                      .reportMatch(
+                                                                        item,
+                                                                        reason,
+                                                                        details,
+                                                                      ),
+                                                            );
+                                                          },
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            );
+                                          },
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
                                       ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                        side: const BorderSide(
-                                          color: Color.fromRGBO(
-                                            255,
-                                            59,
-                                            48,
-                                            0.4,
-                                          ),
+                                      child: Text(
+                                        matches.unmatchingId == item.matchId
+                                            ? '…'
+                                            : '✕',
+                                        style: const TextStyle(
+                                          color: FluitoTokens.danger,
+                                          fontWeight: FontWeight.w500,
                                         ),
                                       ),
-                                      child: InkWell(
-                                        onTap: matches.unmatchingId ==
-                                                item.matchId
-                                            ? null
-                                            : () => matches.unmatch(
-                                                item.matchId,
-                                              ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 6,
-                                          ),
-                                          child: Text(
-                                            matches.unmatchingId == item.matchId
-                                                ? '…'
-                                                : '✕',
-                                            style: const TextStyle(
-                                              color: FluitoTokens.danger,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                item.displayName,
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              if (item.locationLabel.isNotEmpty)
-                                Text(
-                                  '📍 ${item.locationLabel}',
-                                  style: const TextStyle(
-                                    color: FluitoTokens.textSecondary,
-                                  ),
-                                ),
-                              if (item.bio != null && item.bio!.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 6),
-                                  child: Text(
-                                    item.bio!,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: FluitoTokens.textSecondary,
-                                      fontSize: 14,
-                                      height: 1.4,
                                     ),
                                   ),
                                 ),
+                              ),
                             ],
                           ),
-                        );
-                      },
-                    ),
+                          const SizedBox(height: 12),
+                          Text(
+                            item.displayName,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          if (item.locationLabel.isNotEmpty)
+                            Text(
+                              '📍 ${item.locationLabel}',
+                              style: const TextStyle(
+                                color: FluitoTokens.textSecondary,
+                              ),
+                            ),
+                          if (item.bio != null && item.bio!.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6),
+                              child: Text(
+                                item.bio!,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: FluitoTokens.textSecondary,
+                                  fontSize: 14,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
         ),
       ],
     );

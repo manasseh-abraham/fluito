@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'config/app_config.dart';
 import 'screens/auth_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'screens/shell_screen.dart';
 import 'services/fluito_api.dart';
 import 'services/google_auth.dart';
@@ -15,11 +16,7 @@ import 'theme/app_theme.dart';
 import 'widgets/glass.dart';
 
 class FluitoApp extends StatelessWidget {
-  const FluitoApp({
-    super.key,
-    required this.config,
-    required this.api,
-  });
+  const FluitoApp({super.key, required this.config, required this.api});
 
   final AppConfig config;
   final FluitoApi api;
@@ -72,7 +69,9 @@ class _FluitoRoot extends StatelessWidget {
                 child: auth.booting
                     ? const Center(child: CircularProgressIndicator())
                     : auth.isAuthenticated
-                    ? const ShellScreen()
+                    ? (auth.needsOnboarding
+                          ? const OnboardingScreen()
+                          : const ShellScreen())
                     : const AuthScreen(),
               ),
               if (config.isDev)

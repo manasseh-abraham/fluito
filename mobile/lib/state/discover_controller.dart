@@ -42,10 +42,7 @@ class DiscoverController extends ChangeNotifier {
     toast = null;
     notifyListeners();
     try {
-      final result = await api.swipe(
-        targetUserId: card.userId,
-        action: action,
-      );
+      final result = await api.swipe(targetUserId: card.userId, action: action);
       lastSwipeMatched = result.matched;
       toast = result.matched
           ? "It's a match!"
@@ -61,6 +58,38 @@ class DiscoverController extends ChangeNotifier {
       swiping = false;
       notifyListeners();
     }
+  }
+
+  Future<void> blockCurrent() async {
+    final card = current;
+    if (card == null) return;
+    try {
+      await api.blockUser(targetUserId: card.userId);
+      lastSwipeMatched = false;
+      toast = '${card.displayName} blocked';
+      cards.removeAt(0);
+    } on ApiException catch (e) {
+      error = e.message;
+    }
+    notifyListeners();
+  }
+
+  Future<void> reportCurrent(String reason, String? details) async {
+    final card = current;
+    if (card == null) return;
+    try {
+      await api.reportUser(
+        reportedUserId: card.userId,
+        reason: reason,
+        details: details,
+      );
+      lastSwipeMatched = false;
+      toast = '${card.displayName} reported';
+      cards.removeAt(0);
+    } on ApiException catch (e) {
+      error = e.message;
+    }
+    notifyListeners();
   }
 
   void clearToast() {
