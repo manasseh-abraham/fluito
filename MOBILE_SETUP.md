@@ -133,14 +133,16 @@ class ApiService {
 - [ ] Add file storage (S3 or similar)
 - [ ] Add rate limiting
 - [ ] Add analytics endpoints
-- [ ] Add reporting/blocking features
+- [x] Add reporting/blocking features (`POST /api/matches/block`, `POST /api/reports`)
 
 ## API Endpoints Summary
 
 ### Authentication
-- `POST /api/auth/register` - Register new user
+- `POST /api/auth/register` - Register new user (18+)
 - `POST /api/auth/login` - Login and get JWT token
 - `POST /api/auth/google` - Google Sign-In / Sign-Up (ID token → same JWT as `/login`)
+- `DELETE /api/auth/account` - Permanently delete the signed-in account
+- `GET /privacy` / `GET /terms` - Public HTML (not under `/api`)
 
 ### Profiles
 - `GET /api/profiles/me` - Get current user's profile
@@ -150,9 +152,11 @@ class ApiService {
 - `GET /api/profiles/:userId` - Get another user's profile
 
 ### Matches
-- `GET /api/matches/discover` - Discover potential matches
+- `GET /api/matches/discover` - Discover potential matches (requires complete 18+ profile)
 - `POST /api/matches/swipe` - Swipe (like/reject)
 - `GET /api/matches/matches` - Get all matched users
+- `POST /api/matches/block` - Block a user
+- `POST /api/reports` - Report a user (blocks by default)
 
 ### Messages
 - `GET /api/messages/match/:matchId` - Get messages

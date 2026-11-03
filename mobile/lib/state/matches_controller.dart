@@ -40,4 +40,32 @@ class MatchesController extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<void> blockMatch(MatchListItem item) async {
+    try {
+      await api.blockUser(matchId: item.matchId);
+      matches.removeWhere((m) => m.matchId == item.matchId);
+    } on ApiException catch (e) {
+      error = e.message;
+    }
+    notifyListeners();
+  }
+
+  Future<void> reportMatch(
+    MatchListItem item,
+    String reason,
+    String? details,
+  ) async {
+    try {
+      await api.reportUser(
+        matchId: item.matchId,
+        reason: reason,
+        details: details,
+      );
+      matches.removeWhere((m) => m.matchId == item.matchId);
+    } on ApiException catch (e) {
+      error = e.message;
+    }
+    notifyListeners();
+  }
 }

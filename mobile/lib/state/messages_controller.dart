@@ -71,6 +71,48 @@ class MessagesController extends ChangeNotifier {
     }
   }
 
+  Future<void> blockSelected() async {
+    final item = selected;
+    if (item == null) return;
+    try {
+      await api.blockUser(matchId: item.matchId);
+      conversations.removeWhere((m) => m.matchId == item.matchId);
+      selectedMatchId = conversations.isEmpty
+          ? null
+          : conversations.first.matchId;
+      messages = [];
+      if (selectedMatchId != null) {
+        await openConversation(selectedMatchId!);
+      }
+    } on ApiException catch (e) {
+      error = e.message;
+    }
+    notifyListeners();
+  }
+
+  Future<void> reportSelected(String reason, String? details) async {
+    final item = selected;
+    if (item == null) return;
+    try {
+      await api.reportUser(
+        matchId: item.matchId,
+        reason: reason,
+        details: details,
+      );
+      conversations.removeWhere((m) => m.matchId == item.matchId);
+      selectedMatchId = conversations.isEmpty
+          ? null
+          : conversations.first.matchId;
+      messages = [];
+      if (selectedMatchId != null) {
+        await openConversation(selectedMatchId!);
+      }
+    } on ApiException catch (e) {
+      error = e.message;
+    }
+    notifyListeners();
+  }
+
   Future<bool> send(String content) async {
     final id = selectedMatchId;
     final trimmed = content.trim();

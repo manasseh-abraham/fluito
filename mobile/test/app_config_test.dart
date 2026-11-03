@@ -48,6 +48,15 @@ void main() {
     });
   });
 
+  test('privacy and terms URLs are origin paths, not /api', () {
+    const config = AppConfig(
+      flavor: AppFlavor.dev,
+      apiRoot: 'https://api.fluito.veritas.org.in',
+    );
+    expect(config.privacyUrl, 'https://api.fluito.veritas.org.in/privacy');
+    expect(config.termsUrl, 'https://api.fluito.veritas.org.in/terms');
+  });
+
   test('resolveMedia prefixes relative upload paths with the API origin', () {
     const config = AppConfig(
       flavor: AppFlavor.dev,

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy Policy — Fluito</title>
+  <style>
+    :root { color-scheme: light; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; line-height: 1.55; color: #1d1d1f; max-width: 42rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; background: #f5f7fb; }
+    h1 { font-size: 1.75rem; letter-spacing: -0.03em; margin-bottom: 0.25rem; }
+    h2 { font-size: 1.15rem; margin-top: 1.75rem; }
+    p, li { color: #3a3a3c; }
+    .meta { color: #86868b; font-size: 0.95rem; margin-bottom: 1.5rem; }
+    a { color: #007aff; }
+    footer { margin-top: 2.5rem; font-size: 0.9rem; color: #86868b; }
+  </style>
+</head>
+<body>
+  <h1>Privacy Policy</h1>
+  <p class="meta">Fluito — a Christian Pentecostal dating app. Last updated: 3 November 2026.</p>
+
+  <p>This policy describes how Fluito (“we”, “us”) collects, uses, and stores personal data in the current Android app and API. It is written for the product as it actually works today, not for features we have not shipped. The public API host at the time of writing is <code>https://api.fluito.veritas.org.in</code>. We will keep this page at <a href="/privacy">/privacy</a> when the app domain changes.</p>
+
+  <h2>Who we are</h2>
+  <p>Fluito is a dating service for adults in the Christian Pentecostal community. It is operated as an early product; it is not a church and is not endorsed by a denomination unless we say so in the app. Contact: <a href="mailto:manasseh@iotready.co">manasseh@iotready.co</a>.</p>
+
+  <h2>What we collect</h2>
+  <ul>
+    <li><strong>Account.</strong> Email address. If you register with a password, we store a bcrypt password hash — never the password itself. If you use Google Sign-In, we store your Google subject identifier (<code>google_sub</code>) so we can recognize the same Google account, plus the email Google provides.</li>
+    <li><strong>Profile.</strong> First and last name, date of birth, gender, denomination, church name, bio, and optional city / state / country as text you type. We do <em>not</em> collect GPS, precise location, contacts, SMS, or advertising IDs in this version.</li>
+    <li><strong>Photos.</strong> Profile pictures you upload. They are stored as files on the API host under <code>uploads/profiles/</code> (not a third-party CDN yet) and served over HTTPS when the API is hosted that way.</li>
+    <li><strong>Matching activity.</strong> Likes, passes, matches, unmatches, and blocks.</li>
+    <li><strong>Messages.</strong> Text you send to a match, stored so the other person can read the thread.</li>
+    <li><strong>Reports.</strong> If you report someone, we store your user id, theirs, the reason you picked, optional details, and the time.</li>
+    <li><strong>Device identifiers we issue.</strong> After login we give the app a JWT. The Android app keeps that token in platform secure storage. The token identifies your account until it expires (currently 7 days) or you log out or delete the account.</li>
+  </ul>
+
+  <h2>Google Sign-In</h2>
+  <p>If you tap Continue with Google, Google authenticates you and the app sends us an ID token. We verify it with Google and create or find your Fluito account. Google may send us your email and display name. Google does not send us date of birth or gender; those stay empty until you enter them in the required onboarding screen. Google’s own processing is covered by <a href="https://policies.google.com/privacy">Google’s Privacy Policy</a>.</p>
+
+  <h2>How we use data</h2>
+  <p>We use this data to run a dating service: keep you signed in, show Discover cards, apply age/gender/denomination preferences, deliver messages between matched users, enforce the 18+ rule, handle blocks and reports, and delete your account when you ask. We do not sell personal data. We do not use it for advertising networks in this version.</p>
+
+  <h2>Location</h2>
+  <p>Matching is not geo-based yet. If you fill in city and state, those strings can appear on your profile and in Discover. The app does not request location permission and does not read GPS.</p>
+
+  <h2>Retention</h2>
+  <p>We keep account, profile, photos, matches, messages, and reports until you delete your account, or until we close the service. Operational backups of the SQLite database (if any) may retain a copy for a short time after deletion while backups rotate. JWT tokens expire; logging out removes the copy on your device.</p>
+
+  <h2>Account deletion</h2>
+  <p>In the Android app, Profile → Delete account (typed confirmation) calls the API to permanently remove your user row. Related profile, preferences, matches, messages, reports, and local profile photos under <code>uploads/profiles</code> are removed with it. This cannot be undone. You can also email <a href="mailto:manasseh@iotready.co">manasseh@iotready.co</a> if you cannot use the in-app control.</p>
+
+  <h2>User-generated content and safety</h2>
+  <p>Bios, photos, and chat are created by users. You can Block and Report from Discover, Matches, and chat. A block hides the other person from Discover and messaging. A report is stored for review. We may remove content or accounts that break our <a href="/terms">Terms of Service</a>.</p>
+
+  <h2>Children</h2>
+  <p>Fluito is for people 18 years or older. We reject registration and profile date-of-birth updates that show an age under 18. Google Sign-In does not complete matching until you provide a valid 18+ date of birth.</p>
+
+  <h2>Security</h2>
+  <p>Passwords are hashed. API traffic should be HTTPS on the hosted server. JWTs are secrets for your session — do not share them. This is an early product; we work to keep the host reasonably locked down, but no online service is perfectly secure.</p>
+
+  <h2>Changes</h2>
+  <p>If this policy changes in a material way, we will update the date above and keep the page at <a href="/privacy">/privacy</a> so Play Console and the in-app links stay valid.</p>
+
+  <footer>
+    Questions: <a href="mailto:manasseh@iotready.co">manasseh@iotready.co</a> · <a href="/terms">Terms of Service</a>
+  </footer>
+</body>
+</html>

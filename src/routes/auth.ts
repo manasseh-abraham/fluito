@@ -1,8 +1,11 @@
 import { Hono } from 'hono';
 import { db } from '../db/database';
+import { authMiddleware } from '../middleware/auth';
+import { deleteUserAccount } from '../services/account';
 import { authenticateWithGoogle } from '../services/googleAuth';
 import { hashPassword, comparePassword, generateToken } from '../utils/auth';
 import { configuredGoogleClientIds, GoogleTokenError } from '../utils/google';
+import { zodErrorResponse } from '../utils/http';
 import { registerSchema, loginSchema, googleAuthSchema } from '../utils/validation';
 
 export const authRoutes = new Hono();
@@ -59,7 +62,7 @@ authRoutes.post('/register', async (c) => {
     );
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return c.json({ error: 'Validation error', details: error.errors }, 400);
+      return c.json(zodErrorResponse(error), 400);
     }
     return c.json({ error: 'Internal server error' }, 500);
   }
@@ -106,7 +109,7 @@ authRoutes.post('/login', async (c) => {
     });
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return c.json({ error: 'Validation error', details: error.errors }, 400);
+      return c.json(zodErrorResponse(error), 400);
     }
     return c.json({ error: 'Internal server error' }, 500);
   }
@@ -146,9 +149,25 @@ authRoutes.post('/google', async (c) => {
       return c.json({ error: error.message }, error.status as 400 | 401 | 502 | 503);
     }
     if (error.name === 'ZodError') {
-      return c.json({ error: 'Validation error', details: error.errors }, 400);
+      return c.json(zodErrorResponse(error), 400);
     }
     console.error('Google auth error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// Irreversible account deletion. Cascades profiles, preferences, matches, messages, reports,
+// and local photos under uploads/profiles.
+authRoutes.delete('/account', authMiddleware, async (c) => {
+  try {
+    const userId = c.get('userId') as number;
+    const result = await deleteUserAccount({ db, userId });
+    if (!result.deleted) {
+      return c.json({ error: 'Account not found' }, 404);
+    }
+    return c.json({ message: 'Account deleted' });
+  } catch (error) {
+    console.error('Account deletion error:', error);
     return c.json({ error: 'Internal server error' }, 500);
   }
 });

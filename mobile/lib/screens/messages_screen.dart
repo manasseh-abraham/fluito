@@ -6,6 +6,7 @@ import '../config/app_config.dart';
 import '../state/auth_controller.dart';
 import '../state/messages_controller.dart';
 import '../theme/tokens.dart';
+import '../widgets/block_report.dart';
 import '../widgets/glass.dart';
 
 class MessagesScreen extends StatefulWidget {
@@ -64,60 +65,59 @@ class _MessagesScreenState extends State<MessagesScreen> {
           child: messages.loadingMatches
               ? const Center(child: CircularProgressIndicator())
               : messages.conversations.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'No matches yet',
-                        style: TextStyle(color: FluitoTokens.textSecondary),
-                      ),
-                    )
-                  : ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: messages.conversations.length,
-                      separatorBuilder: (_, _) => const SizedBox(width: 10),
-                      itemBuilder: (context, index) {
-                        final item = messages.conversations[index];
-                        final selected =
-                            item.matchId == messages.selectedMatchId;
-                        return GestureDetector(
-                          onTap: () =>
-                              messages.openConversation(item.matchId),
-                          child: GlassSurface(
-                            borderRadius: 16,
-                            padding: const EdgeInsets.all(10),
-                            highlighted: selected,
-                            shadows: const [],
-                            child: SizedBox(
-                              width: 88,
-                              child: Column(
-                                children: [
-                                  ProfilePhoto(
-                                    url: (item.profilePictureUrl == null ||
-                                            item.profilePictureUrl!.isEmpty)
-                                        ? null
-                                        : config.resolveMedia(
-                                            item.profilePictureUrl,
-                                          ),
-                                    size: 44,
-                                    palette: palette,
-                                    fallback: const Text('💑'),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    item.firstName,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
+              ? const Center(
+                  child: Text(
+                    'No matches yet',
+                    style: TextStyle(color: FluitoTokens.textSecondary),
+                  ),
+                )
+              : ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: messages.conversations.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 10),
+                  itemBuilder: (context, index) {
+                    final item = messages.conversations[index];
+                    final selected = item.matchId == messages.selectedMatchId;
+                    return GestureDetector(
+                      onTap: () => messages.openConversation(item.matchId),
+                      child: GlassSurface(
+                        borderRadius: 16,
+                        padding: const EdgeInsets.all(10),
+                        highlighted: selected,
+                        shadows: const [],
+                        child: SizedBox(
+                          width: 88,
+                          child: Column(
+                            children: [
+                              ProfilePhoto(
+                                url:
+                                    (item.profilePictureUrl == null ||
+                                        item.profilePictureUrl!.isEmpty)
+                                    ? null
+                                    : config.resolveMedia(
+                                        item.profilePictureUrl,
+                                      ),
+                                size: 44,
+                                palette: palette,
+                                fallback: const Text('💑'),
                               ),
-                            ),
+                              const SizedBox(height: 6),
+                              Text(
+                                item.firstName,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
                           ),
-                        );
-                      },
-                    ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
         ),
         const SizedBox(height: 8),
         Expanded(
@@ -135,16 +135,39 @@ class _MessagesScreenState extends State<MessagesScreen> {
                   : Column(
                       children: [
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-                          child: Text(
-                            messages.selected?.displayName ?? 'Chat',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                            ),
+                          padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  messages.selected?.displayName ?? 'Chat',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: 'Block or report',
+                                onPressed: messages.selected == null
+                                    ? null
+                                    : () => showSafetyActions(
+                                        context,
+                                        displayName:
+                                            messages.selected!.displayName,
+                                        onBlock: messages.blockSelected,
+                                        onReport: messages.reportSelected,
+                                      ),
+                                icon: const Icon(Icons.more_horiz),
+                              ),
+                            ],
                           ),
                         ),
-                        const Divider(height: 1, color: FluitoTokens.glassBorder),
+                        const Divider(
+                          height: 1,
+                          color: FluitoTokens.glassBorder,
+                        ),
                         Expanded(
                           child: messages.messages.isEmpty
                               ? const Center(
@@ -162,8 +185,14 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                   itemBuilder: (context, index) {
                                     final msg = messages.messages[index];
                                     final mine = msg.senderId == me;
-                                    final showTime = index == 0 ||
-                                        _gap(messages.messages[index - 1].createdAt, msg.createdAt);
+                                    final showTime =
+                                        index == 0 ||
+                                        _gap(
+                                          messages
+                                              .messages[index - 1]
+                                              .createdAt,
+                                          msg.createdAt,
+                                        );
                                     return Column(
                                       children: [
                                         if (showTime)
@@ -188,8 +217,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                             constraints: BoxConstraints(
                                               maxWidth:
                                                   MediaQuery.sizeOf(context)
-                                                          .width *
-                                                      0.7,
+                                                      .width *
+                                                  0.7,
                                             ),
                                             margin: const EdgeInsets.only(
                                               bottom: 8,
@@ -228,7 +257,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                   },
                                 ),
                         ),
-                        const Divider(height: 1, color: FluitoTokens.glassBorder),
+                        const Divider(
+                          height: 1,
+                          color: FluitoTokens.glassBorder,
+                        ),
                         Padding(
                           padding: const EdgeInsets.all(12),
                           child: Row(

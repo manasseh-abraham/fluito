@@ -5,7 +5,10 @@ import '../config/app_config.dart';
 import '../state/auth_controller.dart';
 import '../state/profile_controller.dart';
 import '../theme/tokens.dart';
+import '../utils/age_gate.dart';
 import '../widgets/glass.dart';
+import '../widgets/legal_links.dart';
+import '../widgets/profile_fields.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -109,7 +112,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 16),
               ProfilePhoto(
-                url: (profile?.profilePictureUrl == null ||
+                url:
+                    (profile?.profilePictureUrl == null ||
                         profile!.profilePictureUrl!.isEmpty)
                     ? null
                     : config.resolveMedia(profile.profilePictureUrl),
@@ -129,8 +133,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onPressed: profileState.uploading
                     ? null
                     : () async {
-                        final updated =
-                            await profileState.pickAndUploadPhoto();
+                        final updated = await profileState.pickAndUploadPhoto();
                         if (updated != null) {
                           await auth.refreshProfile();
                         }
@@ -159,65 +162,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: _ProfileDateTile(
-                      label: _dob == null
-                          ? 'Date of birth'
-                          : '${_dob!.year.toString().padLeft(4, '0')}-${_dob!.month.toString().padLeft(2, '0')}-${_dob!.day.toString().padLeft(2, '0')}',
-                      muted: _dob == null,
-                      onTap: () async {
-                        final now = DateTime.now();
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: _dob ?? DateTime(now.year - 25),
-                          firstDate: DateTime(now.year - 100),
-                          lastDate: DateTime(now.year - 18),
-                        );
-                        if (picked != null) setState(() => _dob = picked);
-                      },
+                    child: DobPickerTile(
+                      value: _dob,
+                      onPicked: (value) => setState(() => _dob = value),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Container(
-                      height: 52,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        color: FluitoTokens.glassInputFill,
-                        borderRadius:
-                            BorderRadius.circular(FluitoTokens.fieldRadius),
-                        border: Border.all(color: FluitoTokens.glassBorder),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          isExpanded: true,
-                          value: _gender,
-                          borderRadius: BorderRadius.circular(12),
-                          hint: const Text(
-                            'Gender',
-                            style: TextStyle(color: FluitoTokens.textSecondary),
-                          ),
-                          items: const [
-                            DropdownMenuItem(
-                              value: 'male',
-                              child: Text('Male'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'female',
-                              child: Text('Female'),
-                            ),
-                          ],
-                          onChanged: (v) {
-                            if (v != null) setState(() => _gender = v);
-                          },
-                        ),
-                      ),
+                    child: GenderSelect(
+                      value: _gender,
+                      onChanged: (value) => setState(() => _gender = value),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
               const Text(
-                'Google accounts can fill date of birth and gender here later. They are not invented at sign-in.',
+                'You must be 18 or older. Date of birth and gender are required for Discover.',
                 style: TextStyle(
                   fontSize: 12,
                   color: FluitoTokens.textSecondary,
@@ -258,12 +219,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onPressed: profileState.loading
                     ? null
                     : () async {
+                        if (_dob != null && !AgeGate.isAtLeast18(_dob!)) {
+                          return;
+                        }
                         final updated = await profileState.saveProfile({
                           'first_name': _first.text.trim(),
                           'last_name': _last.text.trim(),
                           if (_dob != null)
-                            'date_of_birth':
-                                '${_dob!.year.toString().padLeft(4, '0')}-${_dob!.month.toString().padLeft(2, '0')}-${_dob!.day.toString().padLeft(2, '0')}',
+                            'date_of_birth': AgeGate.isoDate(_dob!),
                           if (_gender != null) 'gender': _gender,
                           'denomination': _denomination.text.trim(),
                           'church_name': _church.text.trim(),
@@ -327,10 +290,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     items: const [
                       DropdownMenuItem(value: 'both', child: Text('Both')),
                       DropdownMenuItem(value: 'male', child: Text('Male')),
-                      DropdownMenuItem(
-                        value: 'female',
-                        child: Text('Female'),
-                      ),
+                      DropdownMenuItem(value: 'female', child: Text('Female')),
                     ],
                     onChanged: (v) {
                       if (v != null) {
@@ -390,6 +350,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: const TextStyle(color: FluitoTokens.textSecondary),
               ),
               const SizedBox(height: 16),
+              const LegalLinks(alignment: WrapAlignment.start),
+              const SizedBox(height: 16),
               OutlinedButton(
                 onPressed: auth.logout,
                 style: OutlinedButton.styleFrom(
@@ -402,6 +364,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 child: const Text('Logout'),
               ),
+              const SizedBox(height: 12),
+              OutlinedButton(
+                onPressed: auth.busy
+                    ? null
+                    : () => _confirmDeleteAccount(context, auth),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: FluitoTokens.danger,
+                  side: const BorderSide(
+                    color: Color.fromRGBO(255, 59, 48, 0.55),
+                  ),
+                  minimumSize: const Size.fromHeight(48),
+                ),
+                child: const Text('Delete account'),
+              ),
             ],
           ),
         ),
@@ -410,56 +386,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-class _ProfileDateTile extends StatelessWidget {
-  const _ProfileDateTile({
-    required this.label,
-    required this.onTap,
-    this.muted = false,
-  });
-
-  final String label;
-  final VoidCallback onTap;
-  final bool muted;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: FluitoTokens.glassInputFill,
-      borderRadius: BorderRadius.circular(FluitoTokens.fieldRadius),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(FluitoTokens.fieldRadius),
-        onTap: onTap,
-        child: Container(
-          height: 52,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(FluitoTokens.fieldRadius),
-            border: Border.all(color: FluitoTokens.glassBorder),
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.cake_outlined,
-                size: 18,
-                color: FluitoTokens.textSecondary,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  label,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: muted
-                        ? FluitoTokens.textSecondary
-                        : FluitoTokens.textPrimary,
-                    fontSize: 15,
-                  ),
-                ),
-              ),
-            ],
-          ),
+Future<void> _confirmDeleteAccount(
+  BuildContext context,
+  AuthController auth,
+) async {
+  final controller = TextEditingController();
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        title: const Text('Delete account?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'This permanently deletes your profile, photos, matches, and messages. Type DELETE to confirm.',
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(hintText: 'DELETE'),
+              autofocus: true,
+            ),
+          ],
         ),
-      ),
-    );
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              if (controller.text.trim() == 'DELETE') {
+                Navigator.pop(dialogContext, true);
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: FluitoTokens.danger),
+            child: const Text('Delete forever'),
+          ),
+        ],
+      );
+    },
+  );
+  controller.dispose();
+  if (confirmed == true && context.mounted) {
+    final ok = await auth.deleteAccount();
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(auth.error ?? 'Could not delete account')),
+      );
+    }
   }
 }

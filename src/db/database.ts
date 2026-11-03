@@ -224,12 +224,27 @@ export function applySchema(database: Database) {
   `);
 
   database.exec(`
+    CREATE TABLE IF NOT EXISTS reports (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      reporter_id INTEGER NOT NULL,
+      reported_user_id INTEGER NOT NULL,
+      reason TEXT NOT NULL,
+      details TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (reporter_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (reported_user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  database.exec(`
     CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON profiles(user_id);
     CREATE INDEX IF NOT EXISTS idx_profiles_gender ON profiles(gender);
     CREATE INDEX IF NOT EXISTS idx_profiles_location ON profiles(location_city, location_state);
     CREATE INDEX IF NOT EXISTS idx_matches_user1 ON matches(user1_id);
     CREATE INDEX IF NOT EXISTS idx_matches_user2 ON matches(user2_id);
     CREATE INDEX IF NOT EXISTS idx_messages_match_id ON messages(match_id);
+    CREATE INDEX IF NOT EXISTS idx_reports_reporter ON reports(reporter_id);
+    CREATE INDEX IF NOT EXISTS idx_reports_reported ON reports(reported_user_id);
   `);
 
   migrateGoogleAuthSchema(database);
