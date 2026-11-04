@@ -1,5 +1,9 @@
 import { useState } from 'react';
+import GoogleSignInButton from '../components/GoogleSignInButton';
+import LegalLinks from '../components/LegalLinks';
 import { useAuth } from '../context/AuthContext';
+import { isAtLeast18, UNDERAGE_MESSAGE } from '../utils/age';
+import { getApiError } from '../utils/errors';
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -7,11 +11,9 @@ const AuthPage = () => {
   const [loading, setLoading] = useState(false);
   const { login, register } = useAuth();
 
-  // Login form
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
-  // Register form
   const [regData, setRegData] = useState({
     email: '',
     password: '',
@@ -21,27 +23,33 @@ const AuthPage = () => {
     gender: '' as 'male' | 'female' | '',
   });
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError('');
     setLoading(true);
 
     try {
       await login(loginEmail, loginPassword);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed');
+    } catch (err) {
+      setError(getApiError(err, 'Login failed'));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleRegister = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError('');
     setLoading(true);
 
-    if (!regData.email || !regData.password || !regData.first_name || 
-        !regData.last_name || !regData.date_of_birth || !regData.gender) {
+    if (
+      !regData.email ||
+      !regData.password ||
+      !regData.first_name ||
+      !regData.last_name ||
+      !regData.date_of_birth ||
+      !regData.gender
+    ) {
       setError('Please fill in all required fields');
       setLoading(false);
       return;
@@ -53,13 +61,23 @@ const AuthPage = () => {
       return;
     }
 
+    if (!isAtLeast18(regData.date_of_birth)) {
+      setError(UNDERAGE_MESSAGE);
+      setLoading(false);
+      return;
+    }
+
     try {
-      await register(regData);
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.error || 
-        (err.response?.data?.details?.map((d: any) => d.message).join(', ')) ||
-        'Registration failed';
-      setError(errorMsg);
+      await register({
+        email: regData.email,
+        password: regData.password,
+        first_name: regData.first_name,
+        last_name: regData.last_name,
+        date_of_birth: regData.date_of_birth,
+        gender: regData.gender,
+      });
+    } catch (err) {
+      setError(getApiError(err, 'Registration failed'));
     } finally {
       setLoading(false);
     }
@@ -82,7 +100,7 @@ const AuthPage = () => {
                   type="email"
                   placeholder="Email"
                   value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
+                  onChange={(event) => setLoginEmail(event.target.value)}
                   required
                 />
               </div>
@@ -91,7 +109,7 @@ const AuthPage = () => {
                   type="password"
                   placeholder="Password"
                   value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
+                  onChange={(event) => setLoginPassword(event.target.value)}
                   required
                 />
               </div>
@@ -99,9 +117,31 @@ const AuthPage = () => {
                 {loading ? 'Signing in...' : 'Sign In'}
               </button>
             </form>
+            <div className="auth-divider">
+              <span>or</span>
+            </div>
+            <GoogleSignInButton
+              disabled={loading}
+              onStart={() => {
+                setError('');
+                setLoading(true);
+              }}
+              onError={(message) => {
+                setError(message);
+                setLoading(false);
+              }}
+            />
             <p style={{ textAlign: 'center', marginTop: '24px', color: 'var(--text-secondary)' }}>
               Don't have an account?{' '}
-              <a href="#" onClick={(e) => { e.preventDefault(); setIsLogin(false); setError(''); }} style={{ color: 'var(--primary-color)', textDecoration: 'none', fontWeight: 600 }}>
+              <a
+                href="#"
+                onClick={(event) => {
+                  event.preventDefault();
+                  setIsLogin(false);
+                  setError('');
+                }}
+                style={{ color: 'var(--primary-color)', textDecoration: 'none', fontWeight: 600 }}
+              >
                 Sign Up
               </a>
             </p>
@@ -118,7 +158,7 @@ const AuthPage = () => {
                     type="text"
                     placeholder="First Name"
                     value={regData.first_name}
-                    onChange={(e) => setRegData({ ...regData, first_name: e.target.value })}
+                    onChange={(event) => setRegData({ ...regData, first_name: event.target.value })}
                     required
                   />
                 </div>
@@ -127,7 +167,7 @@ const AuthPage = () => {
                     type="text"
                     placeholder="Last Name"
                     value={regData.last_name}
-                    onChange={(e) => setRegData({ ...regData, last_name: e.target.value })}
+                    onChange={(event) => setRegData({ ...regData, last_name: event.target.value })}
                     required
                   />
                 </div>
@@ -137,7 +177,7 @@ const AuthPage = () => {
                   type="email"
                   placeholder="Email"
                   value={regData.email}
-                  onChange={(e) => setRegData({ ...regData, email: e.target.value })}
+                  onChange={(event) => setRegData({ ...regData, email: event.target.value })}
                   required
                 />
               </div>
@@ -146,7 +186,7 @@ const AuthPage = () => {
                   type="password"
                   placeholder="Password (min 8 characters)"
                   value={regData.password}
-                  onChange={(e) => setRegData({ ...regData, password: e.target.value })}
+                  onChange={(event) => setRegData({ ...regData, password: event.target.value })}
                   required
                   minLength={8}
                 />
@@ -156,14 +196,14 @@ const AuthPage = () => {
                   <input
                     type="date"
                     value={regData.date_of_birth}
-                    onChange={(e) => setRegData({ ...regData, date_of_birth: e.target.value })}
+                    onChange={(event) => setRegData({ ...regData, date_of_birth: event.target.value })}
                     required
                   />
                 </div>
                 <div className="form-group">
                   <select
                     value={regData.gender}
-                    onChange={(e) => setRegData({ ...regData, gender: e.target.value as 'male' | 'female' })}
+                    onChange={(event) => setRegData({ ...regData, gender: event.target.value as 'male' | 'female' })}
                     required
                   >
                     <option value="">Select Gender</option>
@@ -172,13 +212,36 @@ const AuthPage = () => {
                   </select>
                 </div>
               </div>
+              <p className="helper-text">Must be 18+. Date of birth cannot be in the last 18 years.</p>
               <button type="submit" className="btn-primary" disabled={loading}>
                 {loading ? 'Creating account...' : 'Create Account'}
               </button>
             </form>
+            <div className="auth-divider">
+              <span>or</span>
+            </div>
+            <GoogleSignInButton
+              disabled={loading}
+              onStart={() => {
+                setError('');
+                setLoading(true);
+              }}
+              onError={(message) => {
+                setError(message);
+                setLoading(false);
+              }}
+            />
             <p style={{ textAlign: 'center', marginTop: '24px', color: 'var(--text-secondary)' }}>
               Already have an account?{' '}
-              <a href="#" onClick={(e) => { e.preventDefault(); setIsLogin(true); setError(''); }} style={{ color: 'var(--primary-color)', textDecoration: 'none', fontWeight: 600 }}>
+              <a
+                href="#"
+                onClick={(event) => {
+                  event.preventDefault();
+                  setIsLogin(true);
+                  setError('');
+                }}
+                style={{ color: 'var(--primary-color)', textDecoration: 'none', fontWeight: 600 }}
+              >
                 Sign In
               </a>
             </p>
@@ -186,10 +249,10 @@ const AuthPage = () => {
         )}
 
         {error && <div className="error-message">{error}</div>}
+        <LegalLinks />
       </div>
     </div>
   );
 };
 
 export default AuthPage;
-

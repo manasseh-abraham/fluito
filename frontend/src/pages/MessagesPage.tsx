@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import SafetyActions from '../components/SafetyActions';
 import { matchesAPI, messagesAPI } from '../services/api';
 import type { Message, MatchListItem } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../hooks/useToast';
 
 const MessagesPage = () => {
   const [searchParams] = useSearchParams();
@@ -17,6 +19,8 @@ const MessagesPage = () => {
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
+  const { showToast, ToastContainer } = useToast();
+  const [safetyOpen, setSafetyOpen] = useState(false);
 
   useEffect(() => {
     loadMatches();
@@ -99,8 +103,11 @@ const MessagesPage = () => {
     }
   };
 
+  const selectedMatch = matches.find((item) => item.match_id === selectedMatchId) ?? null;
+
   return (
     <div className="page-container">
+      <ToastContainer />
       <div className="page-header">
         <h1>Messages</h1>
       </div>
@@ -189,6 +196,16 @@ const MessagesPage = () => {
         <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           {selectedMatchId ? (
             <>
+              {selectedMatch && (
+                <div className="chat-header">
+                  <strong>
+                    {selectedMatch.first_name} {selectedMatch.last_name}
+                  </strong>
+                  <button type="button" className="btn-text" onClick={() => setSafetyOpen(true)}>
+                    Block / Report
+                  </button>
+                </div>
+              )}
               <div style={{ flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {messages.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
@@ -256,6 +273,21 @@ const MessagesPage = () => {
           )}
         </div>
       </div>
+      {safetyOpen && selectedMatch && (
+        <SafetyActions
+          displayName={`${selectedMatch.first_name} ${selectedMatch.last_name}`}
+          matchId={selectedMatch.match_id}
+          targetUserId={selectedMatch.other_user_id}
+          onClose={() => setSafetyOpen(false)}
+          onDone={(action) => {
+            setSafetyOpen(false);
+            showToast(action === 'reported' ? 'Report submitted and user blocked' : 'User blocked', 'info');
+            setSelectedMatchId(null);
+            setMessages([]);
+            loadMatches();
+          }}
+        />
+      )}
     </div>
   );
 };

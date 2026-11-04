@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import SafetyActions from '../components/SafetyActions';
 import { matchesAPI } from '../services/api';
 import type { Match } from '../services/api';
 import { useToast } from '../hooks/useToast';
+import { getApiError } from '../utils/errors';
 
 const DiscoverPage = () => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
+  const [safetyOpen, setSafetyOpen] = useState(false);
   const navigate = useNavigate();
   const { showToast, ToastContainer } = useToast();
 
@@ -15,8 +18,15 @@ const DiscoverPage = () => {
       setLoading(true);
       const response = await matchesAPI.discover();
       setMatches(response.data.matches);
-    } catch (error) {
+    } catch (error: unknown) {
+      const status = (error as { response?: { status?: number; data?: { profile_complete?: boolean } } })
+        .response;
+      if (status?.status === 403 && status.data?.profile_complete === false) {
+        navigate('/onboarding', { replace: true });
+        return;
+      }
       console.error('Error loading matches:', error);
+      showToast(getApiError(error, 'Could not load Discover'), 'error');
     } finally {
       setLoading(false);
     }
@@ -47,6 +57,7 @@ const DiscoverPage = () => {
   if (loading) {
     return (
       <div className="page-container">
+        <ToastContainer />
         <div className="page-header">
           <h1>Discover Matches</h1>
           <button className="btn-icon" onClick={loadDiscover}>🔄</button>
@@ -61,6 +72,7 @@ const DiscoverPage = () => {
   if (matches.length === 0) {
     return (
       <div className="page-container">
+        <ToastContainer />
         <div className="page-header">
           <h1>Discover Matches</h1>
           <button className="btn-icon" onClick={loadDiscover}>🔄</button>
@@ -144,8 +156,28 @@ const DiscoverPage = () => {
               ❤️
             </button>
           </div>
+          <button
+            type="button"
+            className="btn-text"
+            onClick={() => setSafetyOpen(true)}
+            style={{ marginTop: '8px' }}
+          >
+            Block / Report
+          </button>
         </div>
       </div>
+      {safetyOpen && (
+        <SafetyActions
+          displayName={`${match.first_name} ${match.last_name}`}
+          targetUserId={match.user_id}
+          onClose={() => setSafetyOpen(false)}
+          onDone={(action) => {
+            setSafetyOpen(false);
+            showToast(action === 'reported' ? 'Report submitted and user blocked' : 'User blocked', 'info');
+            loadDiscover();
+          }}
+        />
+      )}
     </div>
   );
 };
