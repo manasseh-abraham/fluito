@@ -50,7 +50,7 @@ const GoogleSignInButton = ({ disabled, onStart, onError }: GoogleSignInButtonPr
         theme: 'outline',
         size: 'large',
         text: 'continue_with',
-        shape: 'rectangular',
+        shape: 'pill',
         width,
         logo_alignment: 'left',
       });

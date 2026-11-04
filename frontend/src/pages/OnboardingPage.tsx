@@ -16,17 +16,22 @@ const OnboardingPage = () => {
   );
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState(() => {
+    if (!user?.first_name?.trim() || !user?.last_name?.trim()) return 0;
+    if (!user?.date_of_birth) return 1;
+    return 2;
+  });
 
   if (profileComplete) {
     return <Navigate to="/discover" replace />;
   }
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const handleSubmit = async () => {
     setError('');
 
     if (!firstName.trim() || !lastName.trim()) {
       setError('Please enter your first and last name');
+      setStep(0);
       return;
     }
     if (!dateOfBirth || !gender) {
@@ -35,6 +40,7 @@ const OnboardingPage = () => {
     }
     if (!isAtLeast18(dateOfBirth)) {
       setError(UNDERAGE_MESSAGE);
+      setStep(1);
       return;
     }
 
@@ -54,77 +60,128 @@ const OnboardingPage = () => {
     }
   };
 
+  const nextFromName = () => {
+    setError('');
+    if (!firstName.trim() || !lastName.trim()) {
+      setError('Please enter your first and last name');
+      return;
+    }
+    setStep(1);
+  };
+
+  const nextFromDob = () => {
+    setError('');
+    if (!dateOfBirth) {
+      setError('Date of birth is required');
+      return;
+    }
+    if (!isAtLeast18(dateOfBirth)) {
+      setError(UNDERAGE_MESSAGE);
+      return;
+    }
+    setStep(2);
+  };
+
   return (
-    <div className="page auth-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', minHeight: '100vh' }}>
-      <div className="glass-card auth-card" style={{ maxWidth: '450px', width: '100%', margin: 'auto' }}>
-        <div className="logo">Fluito</div>
-        <h2 style={{ textAlign: 'center', marginBottom: '8px', fontSize: '28px', fontWeight: 600 }}>
-          Complete your profile
-        </h2>
-        <p className="subtitle" style={{ marginBottom: '24px' }}>
-          Fluito needs your date of birth and gender before Discover. You must be 18 or older.
-        </p>
-        <form onSubmit={handleSubmit}>
-          <div className="form-row">
-            <div className="form-group">
-              <input
-                type="text"
-                placeholder="First name"
-                value={firstName}
-                onChange={(event) => setFirstName(event.target.value)}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <input
-                type="text"
-                placeholder="Last name"
-                value={lastName}
-                onChange={(event) => setLastName(event.target.value)}
-                required
-              />
-            </div>
+    <div className="auth-screen">
+      <div className="progress-track" aria-hidden>
+        <div className={`progress-seg${step >= 0 ? ' on' : ''}`} />
+        <div className={`progress-seg${step >= 1 ? ' on' : ''}`} />
+        <div className={`progress-seg${step >= 2 ? ' on' : ''}`} />
+      </div>
+
+      {step === 0 && (
+        <div className="onboard-step">
+          <h2>What&apos;s your name?</h2>
+          <p>This is how you&apos;ll appear on Fluito.</p>
+          <div className="form-group">
+            <input
+              type="text"
+              placeholder="First name"
+              autoComplete="given-name"
+              value={firstName}
+              onChange={(event) => setFirstName(event.target.value)}
+            />
           </div>
-          <div className="form-row">
-            <div className="form-group">
-              <input
-                type="date"
-                value={dateOfBirth}
-                onChange={(event) => setDateOfBirth(event.target.value)}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <select
-                value={gender}
-                onChange={(event) => setGender(event.target.value as 'male' | 'female')}
-                required
-              >
-                <option value="">Select Gender</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-              </select>
-            </div>
+          <div className="form-group">
+            <input
+              type="text"
+              placeholder="Last name"
+              autoComplete="family-name"
+              value={lastName}
+              onChange={(event) => setLastName(event.target.value)}
+            />
+          </div>
+          <button type="button" className="btn-primary" onClick={nextFromName}>
+            Continue
+          </button>
+        </div>
+      )}
+
+      {step === 1 && (
+        <div className="onboard-step">
+          <button type="button" className="screen-back" onClick={() => setStep(0)}>
+            ← Back
+          </button>
+          <h2>Your birthday</h2>
+          <p>You must be 18 or older. We use this to show your age, not your date of birth.</p>
+          <div className="form-group">
+            <input
+              type="date"
+              value={dateOfBirth}
+              onChange={(event) => setDateOfBirth(event.target.value)}
+              required
+            />
           </div>
           <p className="helper-text">Must be 18+. Date of birth cannot be in the last 18 years.</p>
-          <button type="submit" className="btn-primary" disabled={loading}>
+          <button type="button" className="btn-primary" onClick={nextFromDob}>
+            Continue
+          </button>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="onboard-step">
+          <button type="button" className="screen-back" onClick={() => setStep(1)}>
+            ← Back
+          </button>
+          <h2>I am a</h2>
+          <p>Fluito needs your gender before Discover.</p>
+          <div className="choice-grid" role="group" aria-label="Gender">
+            <button
+              type="button"
+              className={`choice${gender === 'male' ? ' selected' : ''}`}
+              onClick={() => setGender('male')}
+            >
+              Male
+            </button>
+            <button
+              type="button"
+              className={`choice${gender === 'female' ? ' selected' : ''}`}
+              onClick={() => setGender('female')}
+            >
+              Female
+            </button>
+          </div>
+          <button type="button" className="btn-primary" disabled={loading || !gender} onClick={handleSubmit}>
             {loading ? 'Saving…' : 'Save and continue'}
           </button>
-        </form>
-        <button
-          type="button"
-          className="btn-text"
-          disabled={loading}
-          onClick={() => {
-            logout();
-            navigate('/', { replace: true });
-          }}
-        >
-          Log out
-        </button>
-        {error && <div className="error-message">{error}</div>}
-        <LegalLinks />
-      </div>
+        </div>
+      )}
+
+      <button
+        type="button"
+        className="btn-text"
+        disabled={loading}
+        onClick={() => {
+          logout();
+          navigate('/', { replace: true });
+        }}
+      >
+        Log out
+      </button>
+      {error && <div className="error-message">{error}</div>}
+      <LegalLinks />
     </div>
   );
 };
