@@ -40,7 +40,11 @@ body,
 }
 
 html {
+  /* Page chrome (scrollbars, UA widgets) stay dark. Native *popups*
+     (date calendar, <select> lists) follow each control's color-scheme —
+     those are forced light below so they are not black-on-black. */
   color-scheme: dark;
+  accent-color: var(--lime);
 }
 
 body {
@@ -280,18 +284,119 @@ a {
 }
 
 .form-group input::placeholder,
-.form-group textarea::placeholder {
-  color: var(--text-dim);
+.form-group textarea::placeholder,
+.composer input::placeholder,
+.field::placeholder {
+  color: var(--text-muted);
 }
 
-.form-group select option {
-  background: var(--surface);
-  color: var(--text);
+/* Native picker popups ignore most CSS. Dark color-scheme makes Chrome's
+   calendar / <select> list black-on-black. Force a light scheme on those
+   controls so the popup is dark text on a light sheet; keep the closed
+   field charcoal via the rules above. */
+input[type='date'],
+input[type='time'],
+input[type='datetime-local'],
+input[type='month'],
+input[type='week'],
+select {
+  color-scheme: only light;
 }
 
-input[type='date']::-webkit-calendar-picker-indicator {
-  filter: invert(1) brightness(1.2);
+input[type='date']::-webkit-datetime-edit,
+input[type='date']::-webkit-datetime-edit-fields-wrapper,
+input[type='date']::-webkit-datetime-edit-text,
+input[type='date']::-webkit-datetime-edit-month-field,
+input[type='date']::-webkit-datetime-edit-day-field,
+input[type='date']::-webkit-datetime-edit-year-field,
+input[type='time']::-webkit-datetime-edit,
+input[type='time']::-webkit-datetime-edit-hour-field,
+input[type='time']::-webkit-datetime-edit-minute-field,
+input[type='datetime-local']::-webkit-datetime-edit,
+input[type='datetime-local']::-webkit-datetime-edit-fields-wrapper {
+  color: #fff;
+}
+
+input[type='date']::-webkit-datetime-edit-month-field:focus,
+input[type='date']::-webkit-datetime-edit-day-field:focus,
+input[type='date']::-webkit-datetime-edit-year-field:focus {
+  background: var(--lime);
+  color: #000;
+}
+
+input[type='date']::-webkit-calendar-picker-indicator,
+input[type='time']::-webkit-calendar-picker-indicator,
+input[type='datetime-local']::-webkit-calendar-picker-indicator,
+input[type='month']::-webkit-calendar-picker-indicator,
+input[type='week']::-webkit-calendar-picker-indicator {
   cursor: pointer;
+  opacity: 1;
+  /* Light-scheme icon is dark; invert so it reads on charcoal fields. */
+  filter: invert(1);
+}
+
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button,
+input[type='date']::-webkit-inner-spin-button {
+  filter: invert(1);
+  opacity: 0.8;
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--lime);
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.form-group select option,
+select option {
+  background: #ffffff;
+  color: #111111;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: #ffffff;
+  caret-color: #ffffff;
+  box-shadow: 0 0 0 1000px var(--surface) inset;
+  border: 1px solid var(--border);
+  transition: background-color 99999s ease-out;
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  color: var(--text-muted);
+  -webkit-text-fill-color: var(--text-muted);
+}
+
+* {
+  scrollbar-color: #3a3a3a #000000;
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+  border-radius: 999px;
+}
+
+::selection {
+  background: var(--lime);
+  color: #000000;
 }
 
 .helper-text {
