@@ -1,9 +1,10 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Background from './components/Background';
 import Navigation from './components/Navigation';
 import ProtectedRoute from './components/ProtectedRoute';
 import AuthPage from './pages/AuthPage';
+import OnboardingPage from './pages/OnboardingPage';
 import DiscoverPage from './pages/DiscoverPage';
 import MatchesPage from './pages/MatchesPage';
 import MessagesPage from './pages/MessagesPage';
@@ -11,13 +12,27 @@ import ProfilePage from './pages/ProfilePage';
 import './index.css';
 
 const AppRoutes = () => {
-  const { user } = useAuth();
+  const { user, profileComplete } = useAuth();
 
   return (
     <Routes>
       <Route
         path="/"
-        element={user ? <Navigate to="/discover" replace /> : <AuthPage />}
+        element={
+          user ? (
+            <Navigate to={profileComplete ? '/discover' : '/onboarding'} replace />
+          ) : (
+            <AuthPage />
+          )
+        }
+      />
+      <Route
+        path="/onboarding"
+        element={
+          <ProtectedRoute requireComplete={false}>
+            <OnboardingPage />
+          </ProtectedRoute>
+        }
       />
       <Route
         path="/discover"

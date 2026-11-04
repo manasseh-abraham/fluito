@@ -11,6 +11,14 @@ export default defineConfig({
         target: 'http://localhost:4000',
         changeOrigin: true,
       },
+      '/privacy': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+      },
+      '/terms': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+      },
     },
   },
   build: {

@@ -1,17 +1,24 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import LegalLinks from '../components/LegalLinks';
 import { useAuth } from '../context/AuthContext';
 import { profileAPI } from '../services/api';
 import type { Profile, Preferences } from '../services/api';
 import imageCompression from 'browser-image-compression';
+import { getApiError } from '../utils/errors';
 
 const ProfilePage = () => {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, deleteAccount } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<Partial<Profile>>({});
   const [preferences, setPreferences] = useState<Partial<Preferences>>({});
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [compressing, setCompressing] = useState(false);
   const [message, setMessage] = useState('');
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -48,8 +55,8 @@ const ProfilePage = () => {
       await profileAPI.updateProfile(profile);
       setMessage('Profile updated successfully!');
       await updateProfile();
-    } catch (error: any) {
-      setMessage(error.response?.data?.error || 'Failed to update profile');
+    } catch (error) {
+      setMessage(getApiError(error, 'Failed to update profile'));
     } finally {
       setLoading(false);
     }
@@ -64,8 +71,8 @@ const ProfilePage = () => {
       await profileAPI.updatePreferences(preferences);
       setMessage('Preferences updated successfully!');
       await loadPreferences();
-    } catch (error: any) {
-      setMessage(error.response?.data?.error || 'Failed to update preferences');
+    } catch (error) {
+      setMessage(getApiError(error, 'Failed to update preferences'));
     } finally {
       setLoading(false);
     }
@@ -121,12 +128,13 @@ const ProfilePage = () => {
       setMessage('Photo uploaded successfully!');
       setProfile({ ...profile, profile_picture_url: response.data.profile_picture_url });
       await updateProfile();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error uploading photo:', error);
-      if (error.message?.includes('compression')) {
+      const maybeMessage = error instanceof Error ? error.message : '';
+      if (maybeMessage.includes('compression')) {
         setMessage('Failed to compress image. Please try a smaller image.');
       } else {
-        setMessage(error.response?.data?.error || 'Failed to upload photo');
+        setMessage(getApiError(error, 'Failed to upload photo'));
       }
     } finally {
       setCompressing(false);
@@ -134,6 +142,21 @@ const ProfilePage = () => {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirm.trim() !== 'DELETE') {
+      setMessage('Type DELETE to confirm account deletion');
+      return;
+    }
+    setDeleting(true);
+    try {
+      await deleteAccount();
+      navigate('/', { replace: true });
+    } catch (error) {
+      setMessage(getApiError(error, 'Could not delete account'));
+      setDeleting(false);
     }
   };
 
@@ -339,7 +362,67 @@ const ProfilePage = () => {
             {message}
           </div>
         )}
+
+        <div className="glass-card">
+          <LegalLinks />
+        </div>
+
+        <div className="glass-card danger-card">
+          <h3 style={{ marginBottom: '8px' }}>Delete account</h3>
+          <p className="modal-copy">
+            Permanently deletes your profile, photos, matches, and messages. This cannot be undone.
+          </p>
+          <button type="button" className="btn-danger" onClick={() => setDeleteOpen(true)}>
+            Delete my account
+          </button>
+        </div>
       </div>
+
+      {deleteOpen && (
+        <div className="modal-overlay" onClick={() => !deleting && setDeleteOpen(false)} role="presentation">
+          <div
+            className="glass-card modal-card"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-title"
+          >
+            <h3 id="delete-title">Delete account?</h3>
+            <p className="modal-copy">
+              This permanently deletes your profile, photos, matches, and messages. Type DELETE to
+              confirm.
+            </p>
+            <div className="form-group">
+              <input
+                type="text"
+                value={deleteConfirm}
+                onChange={(event) => setDeleteConfirm(event.target.value)}
+                placeholder="DELETE"
+                autoFocus
+              />
+            </div>
+            <button
+              type="button"
+              className="btn-danger"
+              disabled={deleting || deleteConfirm.trim() !== 'DELETE'}
+              onClick={handleDeleteAccount}
+            >
+              {deleting ? 'Deleting…' : 'Delete forever'}
+            </button>
+            <button
+              type="button"
+              className="btn-text"
+              disabled={deleting}
+              onClick={() => {
+                setDeleteOpen(false);
+                setDeleteConfirm('');
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

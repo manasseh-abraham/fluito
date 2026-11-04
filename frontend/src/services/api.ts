@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { GOOGLE_WEB_CLIENT_ID } from '../config';
 
 const API_BASE = '/api';
 
@@ -12,7 +13,7 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  
+
   // Set Content-Type based on data type
   // For FormData, axios will automatically set Content-Type with boundary
   // For other data, set application/json
@@ -22,7 +23,7 @@ api.interceptors.request.use((config) => {
     }
   }
   // For FormData, don't set Content-Type - axios will handle it automatically
-  
+
   return config;
 });
 
@@ -32,8 +33,12 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Handle 401 errors
-    if (error.response?.status === 401) {
+    // Handle 401 errors (keep login/Google failures on the auth form)
+    const requestUrl = String(originalRequest?.url || '');
+    const isAuthAttempt = ['/auth/login', '/auth/google', '/auth/register'].some((path) =>
+      requestUrl.includes(path)
+    );
+    if (error.response?.status === 401 && !isAuthAttempt) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/';
@@ -43,20 +48,31 @@ api.interceptors.response.use(
     // Handle 429 (rate limit) errors
     if (error.response?.status === 429) {
       const retryAfter = error.response.headers['retry-after'] || 1;
-      await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+      await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000));
       return api(originalRequest);
     }
 
     // Handle network errors with retry
     if (!error.response && originalRequest && !originalRequest._retry) {
       originalRequest._retry = true;
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       return api(originalRequest);
     }
 
     return Promise.reject(error);
   }
 );
+
+export const REPORT_REASONS = [
+  'harassment',
+  'fake_profile',
+  'inappropriate_content',
+  'spam',
+  'underage',
+  'other',
+] as const;
+
+export type ReportReason = (typeof REPORT_REASONS)[number];
 
 export interface RegisterData {
   email: string;
@@ -81,13 +97,20 @@ export interface AuthResponse {
   };
 }
 
+export interface OnboardingData {
+  first_name: string;
+  last_name: string;
+  date_of_birth: string;
+  gender: 'male' | 'female';
+}
+
 export interface Profile {
   id: number;
   user_id: number;
   first_name: string;
   last_name: string;
-  date_of_birth: string;
-  gender: 'male' | 'female';
+  date_of_birth?: string | null;
+  gender?: 'male' | 'female' | null;
   denomination?: string;
   church_name?: string;
   location_city?: string;
@@ -99,7 +122,9 @@ export interface Profile {
   created_at: string;
   updated_at: string;
   email: string;
-  age: number;
+  age?: number | null;
+  profile_complete?: boolean;
+  missing_required_fields?: string[];
 }
 
 export interface Preferences {
@@ -152,14 +177,32 @@ export interface Message {
   created_at: string;
 }
 
+export function isProfileComplete(user: Profile | null | undefined): boolean {
+  if (!user) return false;
+  if (typeof user.profile_complete === 'boolean') {
+    return user.profile_complete;
+  }
+  const hasName = Boolean(user.first_name?.trim() && user.last_name?.trim());
+  const hasAdultDob = Boolean(user.date_of_birth);
+  const hasGender = user.gender === 'male' || user.gender === 'female';
+  return hasName && hasAdultDob && hasGender;
+}
+
 export const authAPI = {
   register: (data: RegisterData) => api.post<AuthResponse>('/auth/register', data),
   login: (data: LoginData) => api.post<AuthResponse>('/auth/login', data),
+  google: (idToken: string) =>
+    api.post<AuthResponse>('/auth/google', {
+      id_token: idToken,
+      client_id: GOOGLE_WEB_CLIENT_ID,
+    }),
+  deleteAccount: () => api.delete<{ message: string }>('/auth/account'),
 };
 
 export const profileAPI = {
   getProfile: () => api.get<Profile>('/profiles/me'),
-  updateProfile: (data: Partial<Profile>) => api.patch('/profiles/me', data),
+  updateProfile: (data: Partial<Profile> | OnboardingData) =>
+    api.patch<{ message: string; profile: Profile }>('/profiles/me', data),
   uploadPhoto: (file: File) => {
     const formData = new FormData();
     formData.append('photo', file);
@@ -180,12 +223,29 @@ export const matchesAPI = {
     api.post('/matches/swipe', { target_user_id: targetUserId, action }),
   getMatches: () => api.get<{ matches: MatchListItem[]; count: number }>('/matches/matches'),
   unmatch: (matchId: number) => api.post('/matches/unmatch', { match_id: matchId }),
+  block: (target: { target_user_id?: number; match_id?: number }) =>
+    api.post<{ message: string; blocked: boolean; match_id?: number }>('/matches/block', target),
+};
+
+export const reportsAPI = {
+  report: (data: {
+    reported_user_id?: number;
+    match_id?: number;
+    reason: ReportReason;
+    details?: string;
+    block?: boolean;
+  }) =>
+    api.post<{ message: string; report_id: number; blocked: boolean; match_id?: number }>(
+      '/reports',
+      data
+    ),
 };
 
 export const messagesAPI = {
-  getMessages: (matchId: number) => api.get<{ messages: Message[]; count: number }>(`/messages/match/${matchId}`),
-  sendMessage: (matchId: number, content: string) => api.post<{ message: Message }>(`/messages/match/${matchId}`, { content }),
+  getMessages: (matchId: number) =>
+    api.get<{ messages: Message[]; count: number }>(`/messages/match/${matchId}`),
+  sendMessage: (matchId: number, content: string) =>
+    api.post<{ message: Message }>(`/messages/match/${matchId}`, { content }),
 };
 
 export default api;
-

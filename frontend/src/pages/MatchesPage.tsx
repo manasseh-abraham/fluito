@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import SafetyActions from '../components/SafetyActions';
 import { matchesAPI } from '../services/api';
 import type { MatchListItem } from '../services/api';
 import { useToast } from '../hooks/useToast';
+import { getApiError } from '../utils/errors';
 
 const MatchesPage = () => {
   const [matches, setMatches] = useState<MatchListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [unmatching, setUnmatching] = useState<number | null>(null);
+  const [safetyTarget, setSafetyTarget] = useState<MatchListItem | null>(null);
   const navigate = useNavigate();
   const { showToast, ToastContainer } = useToast();
 
@@ -70,8 +73,8 @@ const MatchesPage = () => {
       await matchesAPI.unmatch(matchId);
       showToast('Unmatched successfully', 'info');
       loadMatches();
-    } catch (error: any) {
-      showToast(error.response?.data?.error || 'Failed to unmatch', 'error');
+    } catch (error) {
+      showToast(getApiError(error, 'Failed to unmatch'), 'error');
     } finally {
       setUnmatching(null);
     }
@@ -95,27 +98,27 @@ const MatchesPage = () => {
               onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
               onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
             >
-              <button
-                onClick={(e) => handleUnmatch(e, match.match_id)}
-                disabled={unmatching === match.match_id}
-                style={{
-                  position: 'absolute',
-                  top: '12px',
-                  right: '12px',
-                  background: 'rgba(255, 59, 48, 0.2)',
-                  border: '1px solid rgba(255, 59, 48, 0.4)',
-                  borderRadius: '8px',
-                  padding: '6px 12px',
-                  color: '#FF3B30',
-                  fontSize: '12px',
-                  cursor: 'pointer',
-                  zIndex: 10,
-                  fontWeight: 500,
-                }}
-                title="Unmatch"
-              >
-                {unmatching === match.match_id ? '...' : '✕'}
-              </button>
+              <div className="match-card-actions">
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setSafetyTarget(match);
+                  }}
+                  className="match-safety-btn"
+                  title="Block or report"
+                >
+                  ⋯
+                </button>
+                <button
+                  onClick={(e) => handleUnmatch(e, match.match_id)}
+                  disabled={unmatching === match.match_id}
+                  className="match-unmatch-btn"
+                  title="Unmatch"
+                >
+                  {unmatching === match.match_id ? '...' : '✕'}
+                </button>
+              </div>
               <div
                 style={{
                   width: '100%',
@@ -163,6 +166,19 @@ const MatchesPage = () => {
           );
         })}
       </div>
+      {safetyTarget && (
+        <SafetyActions
+          displayName={`${safetyTarget.first_name} ${safetyTarget.last_name}`}
+          matchId={safetyTarget.match_id}
+          targetUserId={safetyTarget.other_user_id}
+          onClose={() => setSafetyTarget(null)}
+          onDone={(action) => {
+            setSafetyTarget(null);
+            showToast(action === 'reported' ? 'Report submitted and user blocked' : 'User blocked', 'info');
+            loadMatches();
+          }}
+        />
+      )}
     </div>
   );
 };
