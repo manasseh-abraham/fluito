@@ -11,3 +11,12 @@ uploads/
 frontend/dist
 frontend/node_modules
 
+# Flutter / Android signing
+mobile/.dart_tool/
+mobile/.flutter-plugins-dependencies
+mobile/build/
+**/*.jks
+**/*.keystore
+**/key.properties
+mobile/config/local.json
+

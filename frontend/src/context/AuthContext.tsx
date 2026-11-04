@@ -1,14 +1,18 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { authAPI, profileAPI } from '../services/api';
-import type { Profile } from '../services/api';
+import { authAPI, isProfileComplete, profileAPI } from '../services/api';
+import type { OnboardingData, Profile, RegisterData } from '../services/api';
 
 interface AuthContextType {
   user: Profile | null;
   token: string | null;
   loading: boolean;
+  profileComplete: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (data: any) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
+  completeOnboarding: (data: OnboardingData) => Promise<void>;
+  deleteAccount: () => Promise<void>;
   logout: () => void;
   updateProfile: () => Promise<void>;
 }
@@ -26,25 +30,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (storedToken && storedUser) {
       setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-      loadProfile();
+      try {
+        const parsed = JSON.parse(storedUser) as Profile;
+        setUser(parsed);
+      } catch {
+        localStorage.removeItem('user');
+      }
+      void loadProfile();
     } else {
       setLoading(false);
     }
   }, []);
+
+  const persistSession = (newToken: string) => {
+    setToken(newToken);
+    localStorage.setItem('token', newToken);
+  };
 
   const loadProfile = async () => {
     try {
       const response = await profileAPI.getProfile();
       setUser(response.data);
       localStorage.setItem('user', JSON.stringify(response.data));
-      
-      // Set theme based on gender
-      if (response.data.gender === 'female') {
-        document.body.classList.add('theme-pink');
-      } else {
-        document.body.classList.remove('theme-pink');
-      }
     } catch (error) {
       console.error('Error loading profile:', error);
       logout();
@@ -55,22 +62,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, password: string) => {
     const response = await authAPI.login({ email, password });
-    const { token: newToken } = response.data;
-    
-    setToken(newToken);
-    localStorage.setItem('token', newToken);
-    
+    persistSession(response.data.token);
     await loadProfile();
   };
 
-  const register = async (data: any) => {
-    const response = await authAPI.register(data);
-    const { token: newToken } = response.data;
-    
-    setToken(newToken);
-    localStorage.setItem('token', newToken);
-    
+  const loginWithGoogle = async (idToken: string) => {
+    const response = await authAPI.google(idToken);
+    persistSession(response.data.token);
     await loadProfile();
+  };
+
+  const register = async (data: RegisterData) => {
+    const response = await authAPI.register(data);
+    persistSession(response.data.token);
+    await loadProfile();
+  };
+
+  const completeOnboarding = async (data: OnboardingData) => {
+    const response = await profileAPI.updateProfile(data);
+    const next = response.data.profile;
+    setUser(next);
+    localStorage.setItem('user', JSON.stringify(next));
   };
 
   const updateProfile = async () => {
@@ -79,17 +91,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const deleteAccount = async () => {
+    await authAPI.deleteAccount();
+    logout();
+  };
+
   const logout = () => {
     setToken(null);
     setUser(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    document.body.classList.remove('theme-pink');
-    // Navigation will be handled by App.tsx routing
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, updateProfile }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        loading,
+        profileComplete: isProfileComplete(user),
+        login,
+        loginWithGoogle,
+        register,
+        completeOnboarding,
+        deleteAccount,
+        logout,
+        updateProfile,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -102,4 +131,3 @@ export const useAuth = () => {
   }
   return context;
 };
-

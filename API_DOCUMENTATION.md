@@ -36,6 +36,55 @@ Response:
 }
 ```
 
+### Google Sign-In / Sign-Up
+**POST** `/auth/google`
+
+Sign-in and sign-up share this path. The API verifies the Google ID token
+with Google's tokeninfo endpoint (`https://oauth2.googleapis.com/tokeninfo`;
+Google checks the cert signature) and accepts `aud` values listed in
+`GOOGLE_CLIENT_IDS` (comma-separated Web + Android client IDs from GCP
+project `fluito` / manasshe2@gmail.com):
+
+```
+619885353175-l00am55pa3j7rc1a5h3pcmqhhhldh3um.apps.googleusercontent.com
+619885353175-gokhfp6tmp623b2r0s796dhnq5l6jk1f.apps.googleusercontent.com
+619885353175-4u1nq6ibb3iee4b70mllfh343o71qmnj.apps.googleusercontent.com
+```
+
+`GOOGLE_WEB_CLIENT_ID`, `GOOGLE_ANDROID_CLIENT_ID`,
+`GOOGLE_ANDROID_DEV_CLIENT_ID`, and `GOOGLE_ANDROID_PROD_CLIENT_ID` are also
+merged into that allow-list. If none are set, the API falls back to the three
+IDs above. Do not deploy a `client_secret`.
+
+Missing Google profile fields are not invented: first/last name may be empty;
+`date_of_birth` and `gender` stay `null` until the user fills them on
+`PATCH /profiles/me`. `GET /profiles/me` then returns `profile_complete: false`
+and `missing_required_fields` so the Android app can force onboarding. Discover
+returns **403** until date of birth (18+) and gender are saved.
+
+Registration, profile DOB updates, and Google onboarding completion all reject
+ages under 18 (`You must be at least 18 years old to use Fluito`).
+
+Request body:
+```json
+{
+  "id_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "client_id": "optional-web-or-android-client-id.apps.googleusercontent.com"
+}
+```
+
+Response (same shape as `/auth/login`):
+```json
+{
+  "message": "Login successful",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 1,
+    "email": "user@gmail.com"
+  }
+}
+```
+
 ### Login
 **POST** `/auth/login`
 
@@ -81,14 +130,34 @@ Response:
   "location_state": "NY",
   "bio": "Looking for a God-fearing partner",
   "age": 35,
-  "email": "user@example.com"
+  "email": "user@example.com",
+  "profile_complete": true,
+  "missing_required_fields": []
 }
+
+Google-created accounts that have not finished onboarding look like:
+
+```json
+{
+  "first_name": "New",
+  "last_name": "Member",
+  "date_of_birth": null,
+  "gender": null,
+  "age": null,
+  "profile_complete": false,
+  "missing_required_fields": ["date_of_birth", "gender"]
+}
+```
 ```
 
 ### Update Profile
 **PATCH** `/profiles/me`
 
 Headers: `Authorization: Bearer TOKEN`
+
+`date_of_birth`, when sent, must be a real `YYYY-MM-DD` and 18+. This is how
+Google Sign-In users complete onboarding. The response `profile` includes
+`profile_complete` and `missing_required_fields`.
 
 Request body (all fields optional):
 ```json
@@ -141,6 +210,26 @@ Request body (all fields optional):
 **GET** `/profiles/:userId`
 
 Headers: `Authorization: Bearer TOKEN`
+
+Returns 404 if you have blocked each other.
+
+## Account
+
+### Delete account
+**DELETE** `/auth/account`
+
+Headers: `Authorization: Bearer TOKEN`
+
+Irreversible. Deletes the user and cascades profiles, preferences, matches,
+messages, reports, and local files under `uploads/profiles/`. The JWT is then
+invalid because the user no longer exists.
+
+Response:
+```json
+{
+  "message": "Account deleted"
+}
+```
 
 ## Matches
 
@@ -224,6 +313,53 @@ Response:
   "count": 1
 }
 ```
+
+### Unmatch
+**POST** `/matches/unmatch`
+
+```json
+{ "match_id": 1 }
+```
+
+### Block
+**POST** `/matches/block`
+
+Hides the other user from Discover and messages (`matches.status = blocked`).
+Accepts either `target_user_id` or `match_id`.
+
+```json
+{ "target_user_id": 2 }
+```
+
+## Reports
+
+### Report a user
+**POST** `/reports`
+
+Headers: `Authorization: Bearer TOKEN`
+
+Reasons: `harassment`, `fake_profile`, `inappropriate_content`, `spam`,
+`underage`, `other`. Reporting **also blocks** unless `"block": false`.
+
+```json
+{
+  "reported_user_id": 2,
+  "reason": "harassment",
+  "details": "Optional extra context",
+  "block": true
+}
+```
+
+## Legal pages (HTML, public)
+
+These are **not** under `/api`. Link them from Play Console and the app:
+
+| Page | Path | Hosted URL (until fluito.app DNS) |
+| --- | --- | --- |
+| Privacy Policy | `/privacy` | `https://api.fluito.veritas.org.in/privacy` |
+| Terms of Service | `/terms` | `https://api.fluito.veritas.org.in/terms` |
+
+`GET /api` health is unchanged.
 
 ## Messages
 

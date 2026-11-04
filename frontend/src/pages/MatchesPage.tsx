@@ -1,19 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import SafetyActions from '../components/SafetyActions';
+import { MoreIcon } from '../components/Icons';
 import { matchesAPI } from '../services/api';
 import type { MatchListItem } from '../services/api';
 import { useToast } from '../hooks/useToast';
+import { getApiError } from '../utils/errors';
+import { initials, resolvePhotoUrl } from '../utils/photo';
 
 const MatchesPage = () => {
   const [matches, setMatches] = useState<MatchListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [unmatching, setUnmatching] = useState<number | null>(null);
+  const [menuTarget, setMenuTarget] = useState<MatchListItem | null>(null);
+  const [safetyTarget, setSafetyTarget] = useState<MatchListItem | null>(null);
   const navigate = useNavigate();
   const { showToast, ToastContainer } = useToast();
-
-  useEffect(() => {
-    loadMatches();
-  }, []);
 
   const loadMatches = async () => {
     try {
@@ -22,19 +24,38 @@ const MatchesPage = () => {
       setMatches(response.data.matches);
     } catch (error) {
       console.error('Error loading matches:', error);
+      showToast(getApiError(error, 'Could not load matches'), 'error');
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    void loadMatches();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleUnmatch = async (matchId: number) => {
+    if (!confirm('Unmatch this person? You will lose this conversation.')) return;
+    try {
+      setUnmatching(matchId);
+      await matchesAPI.unmatch(matchId);
+      setMenuTarget(null);
+      showToast('Unmatched', 'info');
+      await loadMatches();
+    } catch (error) {
+      showToast(getApiError(error, 'Failed to unmatch'), 'error');
+    } finally {
+      setUnmatching(null);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="page-container">
-        <div className="page-header">
-          <h1>Your Matches</h1>
-        </div>
-        <div style={{ textAlign: 'center', padding: '60px' }}>
-          <div className="loader"></div>
+      <div>
+        <h1 className="screen-title">Matches</h1>
+        <div className="centered-state">
+          <div className="loader" />
         </div>
       </div>
     );
@@ -42,130 +63,125 @@ const MatchesPage = () => {
 
   if (matches.length === 0) {
     return (
-      <div className="page-container">
-        <div className="page-header">
-          <h1>Your Matches</h1>
-        </div>
-        <div className="glass-card" style={{ textAlign: 'center', padding: '60px' }}>
-          <p style={{ color: 'var(--text-secondary)' }}>No matches yet. Start swiping to find your match!</p>
+      <div>
+        <ToastContainer />
+        <h1 className="screen-title">Matches</h1>
+        <div className="centered-state">
+          <h2>No matches yet</h2>
+          <p>Start swiping to find your God-fearing partner.</p>
+          <button type="button" className="btn-primary" onClick={() => navigate('/discover')}>
+            Discover people
+          </button>
         </div>
       </div>
     );
   }
 
-  const getPhotoUrl = (url?: string) => {
-    if (!url) return null;
-    if (url.startsWith('http')) return url;
-    return `${window.location.origin}${url}`;
-  };
-
-  const handleUnmatch = async (e: React.MouseEvent, matchId: number) => {
-    e.stopPropagation();
-    if (!confirm('Are you sure you want to unmatch this person?')) {
-      return;
-    }
-
-    try {
-      setUnmatching(matchId);
-      await matchesAPI.unmatch(matchId);
-      showToast('Unmatched successfully', 'info');
-      loadMatches();
-    } catch (error: any) {
-      showToast(error.response?.data?.error || 'Failed to unmatch', 'error');
-    } finally {
-      setUnmatching(null);
-    }
-  };
-
   return (
-    <div className="page-container">
+    <div>
       <ToastContainer />
-      <div className="page-header">
-        <h1>Your Matches</h1>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
+      <h1 className="screen-title">Matches</h1>
+      <div className="matches-grid">
         {matches.map((match) => {
-          const photoUrl = getPhotoUrl(match.profile_picture_url);
+          const photoUrl = resolvePhotoUrl(match.profile_picture_url);
+          const name = `${match.first_name} ${match.last_name}`;
           return (
-            <div
-              key={match.match_id}
-              className="glass-card"
-              style={{ cursor: 'pointer', transition: 'transform 0.3s ease', overflow: 'hidden', position: 'relative' }}
-              onClick={() => navigate(`/messages?match=${match.match_id}`)}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-            >
+            <div key={match.match_id} className="match-tile">
               <button
-                onClick={(e) => handleUnmatch(e, match.match_id)}
-                disabled={unmatching === match.match_id}
-                style={{
-                  position: 'absolute',
-                  top: '12px',
-                  right: '12px',
-                  background: 'rgba(255, 59, 48, 0.2)',
-                  border: '1px solid rgba(255, 59, 48, 0.4)',
-                  borderRadius: '8px',
-                  padding: '6px 12px',
-                  color: '#FF3B30',
-                  fontSize: '12px',
-                  cursor: 'pointer',
-                  zIndex: 10,
-                  fontWeight: 500,
-                }}
-                title="Unmatch"
-              >
-                {unmatching === match.match_id ? '...' : '✕'}
-              </button>
-              <div
-                style={{
-                  width: '100%',
-                  height: '200px',
-                  background: photoUrl ? 'transparent' : 'linear-gradient(135deg, var(--primary-color), var(--primary-light))',
-                  borderRadius: '16px',
-                  marginBottom: '16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '80px',
-                  overflow: 'hidden',
-                }}
+                type="button"
+                className="match-tile-hit"
+                onClick={() => navigate(`/messages?match=${match.match_id}`)}
+                aria-label={`Message ${name}`}
               >
                 {photoUrl ? (
                   <img
                     src={photoUrl}
-                    alt={`${match.first_name} ${match.last_name}`}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      if (target.parentElement) {
-                        target.parentElement.innerHTML = '<span>💑</span>';
-                        target.parentElement.style.background = 'linear-gradient(135deg, var(--primary-color), var(--primary-light))';
-                      }
+                    alt=""
+                    onError={(event) => {
+                      event.currentTarget.style.display = 'none';
+                      const fallback = event.currentTarget.nextElementSibling as HTMLElement | null;
+                      if (fallback) fallback.style.display = 'grid';
                     }}
                   />
-                ) : (
-                  <span>💑</span>
-                )}
-              </div>
-              <h3 style={{ fontSize: '20px', marginBottom: '8px', fontWeight: 600 }}>{match.first_name} {match.last_name}</h3>
-              {match.location_city && (
-                <p style={{ color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                  📍 {match.location_city}, {match.location_state || ''}
-                </p>
-              )}
-              {match.bio && (
-                <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                  {match.bio}
-                </p>
-              )}
+                ) : null}
+                <div className="match-tile-fallback" style={{ display: photoUrl ? 'none' : 'grid' }}>
+                  {initials(name)}
+                </div>
+                <div className="match-tile-grad" />
+                <div className="match-tile-name">{match.first_name}</div>
+              </button>
+              <button
+                type="button"
+                className="btn-icon match-tile-menu"
+                aria-label={`More actions for ${name}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setMenuTarget(match);
+                }}
+              >
+                <MoreIcon size={16} />
+              </button>
             </div>
           );
         })}
       </div>
+
+      {menuTarget && (
+        <div className="overlay" onClick={() => setMenuTarget(null)} role="presentation">
+          <div className="overlay-panel overlay-panel--dialog" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-card">
+              <h3>
+                {menuTarget.first_name} {menuTarget.last_name}
+              </h3>
+              <p className="modal-copy">Message them, unmatch, or keep this community safe.</p>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => navigate(`/messages?match=${menuTarget.match_id}`)}
+              >
+                Message
+              </button>
+              <button
+                type="button"
+                className="btn-secondary"
+                disabled={unmatching === menuTarget.match_id}
+                onClick={() => void handleUnmatch(menuTarget.match_id)}
+              >
+                {unmatching === menuTarget.match_id ? 'Unmatching…' : 'Unmatch'}
+              </button>
+              <button
+                type="button"
+                className="btn-danger"
+                onClick={() => {
+                  setSafetyTarget(menuTarget);
+                  setMenuTarget(null);
+                }}
+              >
+                Block / Report
+              </button>
+              <button type="button" className="btn-text" onClick={() => setMenuTarget(null)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {safetyTarget && (
+        <SafetyActions
+          displayName={`${safetyTarget.first_name} ${safetyTarget.last_name}`}
+          matchId={safetyTarget.match_id}
+          targetUserId={safetyTarget.other_user_id}
+          onClose={() => setSafetyTarget(null)}
+          onDone={(action) => {
+            setSafetyTarget(null);
+            showToast(action === 'reported' ? 'Report submitted and user blocked' : 'User blocked', 'info');
+            void loadMatches();
+          }}
+        />
+      )}
     </div>
   );
 };
 
 export default MatchesPage;
-

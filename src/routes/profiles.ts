@@ -1,6 +1,10 @@
 import { Hono } from 'hono';
 import { db } from '../db/database';
 import { authMiddleware } from '../middleware/auth';
+import { ageFromDob } from '../utils/age';
+import { isBlockedBetween } from '../services/moderation';
+import { withProfileCompleteness } from '../utils/profileCompleteness';
+import { zodErrorResponse } from '../utils/http';
 import { profileUpdateSchema, preferencesSchema } from '../utils/validation';
 import { join } from 'path';
 import { mkdir, writeFile, unlink } from 'fs/promises';
@@ -48,17 +52,7 @@ profileRoutes.get('/me', (c) => {
     return c.json({ error: 'Profile not found' }, 404);
   }
 
-  // Calculate age
-  const birthDate = new Date(profile.date_of_birth);
-  const today = new Date();
-  const age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-  const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) ? age - 1 : age;
-
-  return c.json({
-    ...profile,
-    age: actualAge,
-  });
+  return c.json(withProfileCompleteness(profile));
 });
 
 // Update profile
@@ -103,10 +97,13 @@ profileRoutes.patch('/me', async (c) => {
       )
       .get(userId) as any;
 
-    return c.json({ message: 'Profile updated successfully', profile });
+    return c.json({
+      message: 'Profile updated successfully',
+      profile: withProfileCompleteness(profile),
+    });
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return c.json({ error: 'Validation error', details: error.errors }, 400);
+      return c.json(zodErrorResponse(error), 400);
     }
     return c.json({ error: 'Internal server error' }, 500);
   }
@@ -183,7 +180,7 @@ profileRoutes.patch('/me/preferences', async (c) => {
     return c.json({ message: 'Preferences updated successfully', preferences });
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return c.json({ error: 'Validation error', details: error.errors }, 400);
+      return c.json(zodErrorResponse(error), 400);
     }
     return c.json({ error: 'Internal server error' }, 500);
   }
@@ -294,6 +291,10 @@ profileRoutes.get('/:userId', (c) => {
     return c.json({ error: 'Cannot view your own profile this way' }, 400);
   }
 
+  if (isBlockedBetween(db, currentUserId, targetUserId)) {
+    return c.json({ error: 'Profile not found' }, 404);
+  }
+
   const profile = db
     .prepare(
       `
@@ -320,16 +321,9 @@ profileRoutes.get('/:userId', (c) => {
     return c.json({ error: 'Profile not found' }, 404);
   }
 
-  // Calculate age
-  const birthDate = new Date(profile.date_of_birth);
-  const today = new Date();
-  const age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-  const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) ? age - 1 : age;
-
   return c.json({
     ...profile,
-    age: actualAge,
+    age: ageFromDob(profile.date_of_birth),
   });
 });
 

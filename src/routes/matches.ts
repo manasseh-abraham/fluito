@@ -1,6 +1,11 @@
 import { Hono } from 'hono';
 import { db } from '../db/database';
 import { authMiddleware } from '../middleware/auth';
+import { discoverProfiles } from '../services/discover';
+import { blockUser, isBlockedBetween, resolveTargetUserId } from '../services/moderation';
+import { profileCompleteness } from '../utils/profileCompleteness';
+import { zodErrorResponse } from '../utils/http';
+import { blockSchema } from '../utils/validation';
 
 type Variables = {
   userId: number;
@@ -15,98 +20,22 @@ matchRoutes.use('/*', authMiddleware);
 // Discover potential matches
 matchRoutes.get('/discover', (c) => {
   const userId = c.get('userId') as number;
-
-  // Get user's profile and preferences
-  const profile = db.prepare('SELECT * FROM profiles WHERE user_id = ?').get(userId) as any;
-  const preferences = db.prepare('SELECT * FROM preferences WHERE user_id = ?').get(userId) as any;
-
-  if (!profile) {
-    return c.json({ error: 'Profile not found. Please complete your profile first.' }, 404);
+  const result = discoverProfiles(db, userId);
+  if (!result.ok) {
+    return c.json(
+      {
+        error: result.error,
+        ...(result.profile_complete === undefined
+          ? {}
+          : {
+              profile_complete: result.profile_complete,
+              missing_required_fields: result.missing_required_fields,
+            }),
+      },
+      result.status
+    );
   }
-
-  // Calculate user's age
-  const birthDate = new Date(profile.date_of_birth);
-  const today = new Date();
-  const age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-  const userAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) ? age - 1 : age;
-
-  // Build query for potential matches
-  let query = `
-    SELECT DISTINCT
-      p.id,
-      p.user_id,
-      p.first_name,
-      p.last_name,
-      p.date_of_birth,
-      p.gender,
-      p.denomination,
-      p.church_name,
-      p.location_city,
-      p.location_state,
-      p.location_country,
-      p.bio,
-      p.profile_picture_url
-    FROM profiles p
-    WHERE p.user_id != ? 
-      AND p.is_active = 1
-      AND p.user_id NOT IN (
-        SELECT CASE 
-          WHEN user1_id = ? THEN user2_id
-          WHEN user2_id = ? THEN user1_id
-        END
-        FROM matches
-        WHERE (user1_id = ? OR user2_id = ?) AND status != 'pending'
-      )
-  `;
-
-  const params: any[] = [userId, userId, userId, userId, userId];
-
-  // Apply gender preference
-  if (preferences?.preferred_gender && preferences.preferred_gender !== 'both') {
-    query += ' AND p.gender = ?';
-    params.push(preferences.preferred_gender);
-  } else if (!preferences || !preferences.preferred_gender) {
-    // Default: opposite gender
-    const oppositeGender = profile.gender === 'male' ? 'female' : 'male';
-    query += ' AND p.gender = ?';
-    params.push(oppositeGender);
-  }
-
-  // Apply age preferences
-  if (preferences?.min_age || preferences?.max_age) {
-    const minAge = preferences.min_age || 18;
-    const maxAge = preferences.max_age || 100;
-    const minBirthYear = today.getFullYear() - maxAge - 1;
-    const maxBirthYear = today.getFullYear() - minAge;
-    query += ' AND CAST(SUBSTR(p.date_of_birth, 1, 4) AS INTEGER) BETWEEN ? AND ?';
-    params.push(minBirthYear, maxBirthYear);
-  }
-
-  // Apply denomination preference
-  if (preferences?.denomination_preference) {
-    query += ' AND p.denomination = ?';
-    params.push(preferences.denomination_preference);
-  }
-
-  query += ' LIMIT 20';
-
-  const potentialMatches = db.prepare(query).all(...params) as any[];
-
-  // Calculate ages and format results
-  const matches = potentialMatches.map((match) => {
-    const birthDate = new Date(match.date_of_birth);
-    const age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) ? age - 1 : age;
-
-    return {
-      ...match,
-      age: actualAge,
-    };
-  });
-
-  return c.json({ matches, count: matches.length });
+  return c.json({ matches: result.matches, count: result.count });
 });
 
 // Swipe right (like) or left (reject)
@@ -122,6 +51,22 @@ matchRoutes.post('/swipe', async (c) => {
 
     if (userId === target_user_id) {
       return c.json({ error: 'Cannot swipe on yourself' }, 400);
+    }
+
+    const viewer = db.prepare('SELECT * FROM profiles WHERE user_id = ?').get(userId) as any;
+    if (!viewer) {
+      return c.json({ error: 'Profile not found. Please complete your profile first.' }, 404);
+    }
+    const completeness = profileCompleteness(viewer);
+    if (!completeness.profile_complete) {
+      return c.json(
+        { error: 'Complete your profile before discovering matches.', ...completeness },
+        403
+      );
+    }
+
+    if (isBlockedBetween(db, userId, target_user_id)) {
+      return c.json({ error: 'You cannot interact with this user' }, 403);
     }
 
     // Check if match already exists
@@ -285,6 +230,35 @@ matchRoutes.post('/unmatch', async (c) => {
 
     return c.json({ message: 'Unmatched successfully' });
   } catch (error: any) {
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// Block a user: sets match status to blocked and hides them from Discover / messages.
+matchRoutes.post('/block', async (c) => {
+  try {
+    const userId = c.get('userId') as number;
+    const body = await c.req.json();
+    const validated = blockSchema.parse(body);
+    const target = resolveTargetUserId(db, userId, {
+      targetUserId: validated.target_user_id,
+      matchId: validated.match_id,
+    });
+
+    if (!target.ok) {
+      return c.json({ error: target.error }, target.status);
+    }
+
+    const result = blockUser(db, userId, target.targetUserId);
+    return c.json({
+      message: result.alreadyBlocked ? 'User already blocked' : 'User blocked',
+      blocked: true,
+      match_id: result.matchId,
+    });
+  } catch (error: any) {
+    if (error.name === 'ZodError') {
+      return c.json(zodErrorResponse(error), 400);
+    }
     return c.json({ error: 'Internal server error' }, 500);
   }
 });

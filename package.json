@@ -10,7 +10,9 @@
     "kill:port": "lsof -ti:4000 | xargs kill -9 2>/dev/null || true",
     "dev:clean": "bun run kill:port && bun run dev",
     "db:migrate": "bun run src/db/migrate.ts",
-    "db:seed": "bun run src/db/seed.ts"
+    "db:seed": "bun run src/db/seed.ts",
+    "db:seed:force": "bun run src/db/seed.ts -- --force",
+    "test": "bun test"
   },
   "keywords": ["dating", "christian", "pentecostal"],
   "author": "",
