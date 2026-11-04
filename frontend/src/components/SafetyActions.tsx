@@ -66,10 +66,10 @@ const SafetyActions = ({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose} role="presentation">
+    <div className="overlay" onClick={onClose} role="presentation">
+      <div className="overlay-panel overlay-panel--dialog" onClick={(event) => event.stopPropagation()}>
       <div
-        className="glass-card modal-card"
-        onClick={(event) => event.stopPropagation()}
+        className="modal-card"
         role="dialog"
         aria-modal="true"
         aria-labelledby="safety-title"
@@ -159,6 +159,7 @@ const SafetyActions = ({
         )}
 
         {error && <div className="error-message">{error}</div>}
+      </div>
       </div>
     </div>
   );

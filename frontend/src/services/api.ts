@@ -220,7 +220,10 @@ export const profileAPI = {
 export const matchesAPI = {
   discover: () => api.get<{ matches: Match[]; count: number }>('/matches/discover'),
   swipe: (targetUserId: number, action: 'like' | 'reject') =>
-    api.post('/matches/swipe', { target_user_id: targetUserId, action }),
+    api.post<{ message: string; matched: boolean }>('/matches/swipe', {
+      target_user_id: targetUserId,
+      action,
+    }),
   getMatches: () => api.get<{ matches: MatchListItem[]; count: number }>('/matches/matches'),
   unmatch: (matchId: number) => api.post('/matches/unmatch', { match_id: matchId }),
   block: (target: { target_user_id?: number; match_id?: number }) =>

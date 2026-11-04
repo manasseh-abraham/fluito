@@ -12,7 +12,7 @@ const ProtectedRoute = ({
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+      <div className="centered-state" style={{ minHeight: '100%' }}>
         <div className="loader"></div>
       </div>
     );

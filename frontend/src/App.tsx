@@ -1,7 +1,6 @@
 import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import Background from './components/Background';
-import Navigation from './components/Navigation';
+import TabBar from './components/TabBar';
 import ProtectedRoute from './components/ProtectedRoute';
 import AuthPage from './pages/AuthPage';
 import OnboardingPage from './pages/OnboardingPage';
@@ -11,8 +10,29 @@ import MessagesPage from './pages/MessagesPage';
 import ProfilePage from './pages/ProfilePage';
 import './index.css';
 
+const MainShell = ({
+  children,
+  flush = false,
+}: {
+  children: React.ReactNode;
+  flush?: boolean;
+}) => (
+  <>
+    <main className={flush ? 'app-main app-main--flush' : 'app-main'}>{children}</main>
+    <TabBar />
+  </>
+);
+
 const AppRoutes = () => {
-  const { user, profileComplete } = useAuth();
+  const { user, profileComplete, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="centered-state">
+        <div className="loader" />
+      </div>
+    );
+  }
 
   return (
     <Routes>
@@ -38,8 +58,9 @@ const AppRoutes = () => {
         path="/discover"
         element={
           <ProtectedRoute>
-            <Navigation />
-            <DiscoverPage />
+            <MainShell flush>
+              <DiscoverPage />
+            </MainShell>
           </ProtectedRoute>
         }
       />
@@ -47,8 +68,9 @@ const AppRoutes = () => {
         path="/matches"
         element={
           <ProtectedRoute>
-            <Navigation />
-            <MatchesPage />
+            <MainShell>
+              <MatchesPage />
+            </MainShell>
           </ProtectedRoute>
         }
       />
@@ -56,8 +78,9 @@ const AppRoutes = () => {
         path="/messages"
         element={
           <ProtectedRoute>
-            <Navigation />
-            <MessagesPage />
+            <MainShell flush>
+              <MessagesPage />
+            </MainShell>
           </ProtectedRoute>
         }
       />
@@ -65,8 +88,9 @@ const AppRoutes = () => {
         path="/profile"
         element={
           <ProtectedRoute>
-            <Navigation />
-            <ProfilePage />
+            <MainShell>
+              <ProfilePage />
+            </MainShell>
           </ProtectedRoute>
         }
       />
@@ -78,8 +102,11 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Background />
-        <AppRoutes />
+        <div className="app-root">
+          <div className="app-frame">
+            <AppRoutes />
+          </div>
+        </div>
       </BrowserRouter>
     </AuthProvider>
   );

@@ -61,12 +61,15 @@ npm run preview
 ```
 src/
 ├── components/      # Reusable components
-│   ├── Background.tsx
+│   ├── Avatar.tsx
 │   ├── GoogleSignInButton.tsx
+│   ├── Icons.tsx
 │   ├── LegalLinks.tsx
-│   ├── Navigation.tsx
+│   ├── MatchModal.tsx
 │   ├── ProtectedRoute.tsx
-│   └── SafetyActions.tsx
+│   ├── SafetyActions.tsx
+│   ├── TabBar.tsx
+│   └── Toast.tsx
 ├── context/         # React Context providers
 │   └── AuthContext.tsx
 ├── pages/           # Page components

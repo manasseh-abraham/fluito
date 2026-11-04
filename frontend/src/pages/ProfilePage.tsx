@@ -1,14 +1,15 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import imageCompression from 'browser-image-compression';
+import Avatar from '../components/Avatar';
 import LegalLinks from '../components/LegalLinks';
 import { useAuth } from '../context/AuthContext';
 import { profileAPI } from '../services/api';
 import type { Profile, Preferences } from '../services/api';
-import imageCompression from 'browser-image-compression';
 import { getApiError } from '../utils/errors';
 
 const ProfilePage = () => {
-  const { user, updateProfile, deleteAccount } = useAuth();
+  const { user, updateProfile, deleteAccount, logout } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Partial<Profile>>({});
   const [preferences, setPreferences] = useState<Partial<Preferences>>({});
@@ -34,7 +35,7 @@ const ProfilePage = () => {
         profile_picture_url: user.profile_picture_url || '',
       });
     }
-    loadPreferences();
+    void loadPreferences();
   }, [user]);
 
   const loadPreferences = async () => {
@@ -46,11 +47,10 @@ const ProfilePage = () => {
     }
   };
 
-  const handleProfileUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleProfileUpdate = async (event: React.FormEvent) => {
+    event.preventDefault();
     setLoading(true);
     setMessage('');
-
     try {
       await profileAPI.updateProfile(profile);
       setMessage('Profile updated successfully!');
@@ -62,11 +62,10 @@ const ProfilePage = () => {
     }
   };
 
-  const handlePreferencesUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handlePreferencesUpdate = async (event: React.FormEvent) => {
+    event.preventDefault();
     setLoading(true);
     setMessage('');
-
     try {
       await profileAPI.updatePreferences(preferences);
       setMessage('Preferences updated successfully!');
@@ -78,18 +77,16 @@ const ProfilePage = () => {
     }
   };
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       setMessage('Please select an image file');
       return;
     }
 
-    // Warn if file is very large (but still allow it - compression will handle it)
-    const maxRecommendedSize = 20 * 1024 * 1024; // 20MB
+    const maxRecommendedSize = 20 * 1024 * 1024;
     if (file.size > maxRecommendedSize) {
       const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
       if (!confirm(`This image is ${sizeMB}MB. It will be compressed before upload. Continue?`)) {
@@ -102,23 +99,13 @@ const ProfilePage = () => {
     setMessage('Compressing image...');
 
     try {
-      // Compress image before upload
-      // Options: max size 5MB, max width/height 2000px, quality 0.8
-      const options = {
+      const compressedFile = await imageCompression(file, {
         maxSizeMB: 5,
         maxWidthOrHeight: 2000,
         useWebWorker: true,
         fileType: file.type,
         initialQuality: 0.8,
-      };
-
-      const compressedFile = await imageCompression(file, options);
-      
-      // Check if compression helped
-      const originalSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-      const compressedSizeMB = (compressedFile.size / (1024 * 1024)).toFixed(2);
-      
-      console.log(`Original size: ${originalSizeMB}MB, Compressed size: ${compressedSizeMB}MB`);
+      });
 
       setCompressing(false);
       setUploading(true);
@@ -160,93 +147,58 @@ const ProfilePage = () => {
     }
   };
 
-  const getPhotoUrl = (url?: string) => {
-    if (!url) return null;
-    if (url.startsWith('http')) return url;
-    return `${window.location.origin}${url}`;
-  };
+  const displayName = `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'You';
+  const success = message.includes('successfully');
 
   return (
-    <div className="page-container">
-      <div className="page-header">
-        <h1>My Profile</h1>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '800px', margin: '0 auto' }}>
-        {/* Profile Photo Section */}
-        <div className="glass-card">
-          <h3 style={{ marginBottom: '20px' }}>Profile Photo</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-            <div
-              className="profile-photo-preview"
-              style={{
-                width: '150px',
-                height: '150px',
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, var(--primary-color), var(--primary-light))',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '60px',
-                overflow: 'hidden',
-                position: 'relative',
-              }}
-            >
-              {getPhotoUrl(profile.profile_picture_url) ? (
-                <img
-                  src={getPhotoUrl(profile.profile_picture_url)!}
-                  alt="Profile"
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                  }}
-                />
-              ) : (
-                <span>{user?.first_name?.[0]?.toUpperCase() || '👤'}</span>
-              )}
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/jpg,image/png,image/webp"
-              onChange={handlePhotoUpload}
-              style={{ display: 'none' }}
-              id="photo-upload"
-            />
-            <label htmlFor="photo-upload">
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading || compressing}
-                style={{ width: 'auto', padding: '12px 24px', cursor: (uploading || compressing) ? 'not-allowed' : 'pointer' }}
-              >
-                {compressing ? 'Compressing...' : uploading ? 'Uploading...' : 'Upload Photo'}
-              </button>
-            </label>
-            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center' }}>
-              JPEG, PNG, or WebP. Images will be automatically compressed before upload
-            </p>
-          </div>
+    <div>
+      <h1 className="screen-title">Profile</h1>
+      <div className="stack">
+        <div className="profile-hero">
+          <Avatar src={profile.profile_picture_url} name={displayName} size={120} className="avatar--lg" />
+          <h2>
+            {displayName}
+            {user?.age ? `, ${user.age}` : ''}
+          </h2>
+          <p>{user?.email}</p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/webp"
+            onChange={handlePhotoUpload}
+            style={{ display: 'none' }}
+            id="photo-upload"
+          />
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading || compressing}
+            style={{ width: 'auto', padding: '12px 28px' }}
+          >
+            {compressing ? 'Compressing...' : uploading ? 'Uploading...' : 'Upload photo'}
+          </button>
+          <p>JPEG, PNG, or WebP. Images are compressed before upload.</p>
         </div>
 
-        <div className="glass-card">
+        <div className="surface-card">
+          <h3>Edit profile</h3>
           <form onSubmit={handleProfileUpdate}>
             <div className="form-group">
-              <label>First Name</label>
+              <label>First name</label>
               <input
                 type="text"
                 value={profile.first_name || ''}
-                onChange={(e) => setProfile({ ...profile, first_name: e.target.value })}
+                onChange={(event) => setProfile({ ...profile, first_name: event.target.value })}
                 required
               />
             </div>
             <div className="form-group">
-              <label>Last Name</label>
+              <label>Last name</label>
               <input
                 type="text"
                 value={profile.last_name || ''}
-                onChange={(e) => setProfile({ ...profile, last_name: e.target.value })}
+                onChange={(event) => setProfile({ ...profile, last_name: event.target.value })}
                 required
               />
             </div>
@@ -255,16 +207,16 @@ const ProfilePage = () => {
               <input
                 type="text"
                 value={profile.denomination || ''}
-                onChange={(e) => setProfile({ ...profile, denomination: e.target.value })}
+                onChange={(event) => setProfile({ ...profile, denomination: event.target.value })}
                 placeholder="e.g., Pentecostal"
               />
             </div>
             <div className="form-group">
-              <label>Church Name</label>
+              <label>Church name</label>
               <input
                 type="text"
                 value={profile.church_name || ''}
-                onChange={(e) => setProfile({ ...profile, church_name: e.target.value })}
+                onChange={(event) => setProfile({ ...profile, church_name: event.target.value })}
               />
             </div>
             <div className="form-row">
@@ -273,7 +225,7 @@ const ProfilePage = () => {
                 <input
                   type="text"
                   value={profile.location_city || ''}
-                  onChange={(e) => setProfile({ ...profile, location_city: e.target.value })}
+                  onChange={(event) => setProfile({ ...profile, location_city: event.target.value })}
                 />
               </div>
               <div className="form-group">
@@ -281,7 +233,7 @@ const ProfilePage = () => {
                 <input
                   type="text"
                   value={profile.location_state || ''}
-                  onChange={(e) => setProfile({ ...profile, location_state: e.target.value })}
+                  onChange={(event) => setProfile({ ...profile, location_state: event.target.value })}
                 />
               </div>
             </div>
@@ -289,86 +241,95 @@ const ProfilePage = () => {
               <label>Bio</label>
               <textarea
                 value={profile.bio || ''}
-                onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                onChange={(event) => setProfile({ ...profile, bio: event.target.value })}
                 rows={4}
                 maxLength={1000}
               />
             </div>
             <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? 'Saving...' : 'Save Profile'}
+              {loading ? 'Saving...' : 'Save profile'}
             </button>
           </form>
         </div>
 
-        <div className="glass-card">
-          <h3 style={{ marginBottom: '20px' }}>Preferences</h3>
+        <div className="surface-card">
+          <h3>Discovery preferences</h3>
           <form onSubmit={handlePreferencesUpdate}>
             <div className="form-row">
               <div className="form-group">
-                <label>Min Age</label>
+                <label>Min age</label>
                 <input
                   type="number"
                   value={preferences.min_age || ''}
-                  onChange={(e) => setPreferences({ ...preferences, min_age: parseInt(e.target.value) || undefined })}
+                  onChange={(event) =>
+                    setPreferences({ ...preferences, min_age: parseInt(event.target.value, 10) || undefined })
+                  }
                   min={18}
                   max={100}
                 />
               </div>
               <div className="form-group">
-                <label>Max Age</label>
+                <label>Max age</label>
                 <input
                   type="number"
                   value={preferences.max_age || ''}
-                  onChange={(e) => setPreferences({ ...preferences, max_age: parseInt(e.target.value) || undefined })}
+                  onChange={(event) =>
+                    setPreferences({ ...preferences, max_age: parseInt(event.target.value, 10) || undefined })
+                  }
                   min={18}
                   max={100}
                 />
               </div>
             </div>
             <div className="form-group">
-              <label>Preferred Gender</label>
-              <select
-                value={preferences.preferred_gender || 'both'}
-                onChange={(e) => setPreferences({ ...preferences, preferred_gender: e.target.value as 'male' | 'female' | 'both' })}
-              >
-                <option value="both">Both</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-              </select>
+              <label>Preferred gender</label>
+              <div className="chip-row">
+                {(['both', 'male', 'female'] as const).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`chip${(preferences.preferred_gender || 'both') === value ? ' selected' : ''}`}
+                    onClick={() => setPreferences({ ...preferences, preferred_gender: value })}
+                  >
+                    {value === 'both' ? 'Everyone' : value === 'male' ? 'Men' : 'Women'}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="form-group">
-              <label>Denomination Preference</label>
+              <label>Denomination preference</label>
               <input
                 type="text"
                 value={preferences.denomination_preference || ''}
-                onChange={(e) => setPreferences({ ...preferences, denomination_preference: e.target.value || undefined })}
+                onChange={(event) =>
+                  setPreferences({ ...preferences, denomination_preference: event.target.value || undefined })
+                }
               />
             </div>
             <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? 'Saving...' : 'Save Preferences'}
+              {loading ? 'Saving...' : 'Save preferences'}
             </button>
           </form>
         </div>
 
-        {message && (
-          <div
-            className="error-message"
-            style={{
-              background: message.includes('successfully') ? 'rgba(52, 199, 89, 0.15)' : 'rgba(255, 59, 48, 0.15)',
-              borderColor: message.includes('successfully') ? 'rgba(52, 199, 89, 0.4)' : 'rgba(255, 59, 48, 0.4)',
-              color: message.includes('successfully') ? '#34C759' : '#FF3B30',
+        {message && <div className={success ? 'banner-success' : 'error-message'}>{message}</div>}
+
+        <div className="surface-card">
+          <LegalLinks />
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={() => {
+              logout();
+              navigate('/', { replace: true });
             }}
           >
-            {message}
-          </div>
-        )}
-
-        <div className="glass-card">
-          <LegalLinks />
+            Log out
+          </button>
         </div>
 
-        <div className="glass-card danger-card">
-          <h3 style={{ marginBottom: '8px' }}>Delete account</h3>
+        <div className="surface-card danger-card">
+          <h3>Delete account</h3>
           <p className="modal-copy">
             Permanently deletes your profile, photos, matches, and messages. This cannot be undone.
           </p>
@@ -379,47 +340,42 @@ const ProfilePage = () => {
       </div>
 
       {deleteOpen && (
-        <div className="modal-overlay" onClick={() => !deleting && setDeleteOpen(false)} role="presentation">
-          <div
-            className="glass-card modal-card"
-            onClick={(event) => event.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-title"
-          >
-            <h3 id="delete-title">Delete account?</h3>
-            <p className="modal-copy">
-              This permanently deletes your profile, photos, matches, and messages. Type DELETE to
-              confirm.
-            </p>
-            <div className="form-group">
-              <input
-                type="text"
-                value={deleteConfirm}
-                onChange={(event) => setDeleteConfirm(event.target.value)}
-                placeholder="DELETE"
-                autoFocus
-              />
+        <div className="overlay" onClick={() => !deleting && setDeleteOpen(false)} role="presentation">
+          <div className="overlay-panel overlay-panel--dialog" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="delete-title">
+              <h3 id="delete-title">Delete account?</h3>
+              <p className="modal-copy">
+                This permanently deletes your profile, photos, matches, and messages. Type DELETE to confirm.
+              </p>
+              <div className="form-group">
+                <input
+                  type="text"
+                  value={deleteConfirm}
+                  onChange={(event) => setDeleteConfirm(event.target.value)}
+                  placeholder="DELETE"
+                  autoFocus
+                />
+              </div>
+              <button
+                type="button"
+                className="btn-danger"
+                disabled={deleting || deleteConfirm.trim() !== 'DELETE'}
+                onClick={() => void handleDeleteAccount()}
+              >
+                {deleting ? 'Deleting…' : 'Delete forever'}
+              </button>
+              <button
+                type="button"
+                className="btn-text"
+                disabled={deleting}
+                onClick={() => {
+                  setDeleteOpen(false);
+                  setDeleteConfirm('');
+                }}
+              >
+                Cancel
+              </button>
             </div>
-            <button
-              type="button"
-              className="btn-danger"
-              disabled={deleting || deleteConfirm.trim() !== 'DELETE'}
-              onClick={handleDeleteAccount}
-            >
-              {deleting ? 'Deleting…' : 'Delete forever'}
-            </button>
-            <button
-              type="button"
-              className="btn-text"
-              disabled={deleting}
-              onClick={() => {
-                setDeleteOpen(false);
-                setDeleteConfirm('');
-              }}
-            >
-              Cancel
-            </button>
           </div>
         </div>
       )}
@@ -428,4 +384,3 @@ const ProfilePage = () => {
 };
 
 export default ProfilePage;
-

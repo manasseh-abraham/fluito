@@ -19,14 +19,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-function applyTheme(gender?: string | null) {
-  if (gender === 'female') {
-    document.body.classList.add('theme-pink');
-  } else {
-    document.body.classList.remove('theme-pink');
-  }
-}
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<Profile | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -41,7 +33,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const parsed = JSON.parse(storedUser) as Profile;
         setUser(parsed);
-        applyTheme(parsed.gender);
       } catch {
         localStorage.removeItem('user');
       }
@@ -61,7 +52,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const response = await profileAPI.getProfile();
       setUser(response.data);
       localStorage.setItem('user', JSON.stringify(response.data));
-      applyTheme(response.data.gender);
     } catch (error) {
       console.error('Error loading profile:', error);
       logout();
@@ -93,7 +83,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const next = response.data.profile;
     setUser(next);
     localStorage.setItem('user', JSON.stringify(next));
-    applyTheme(next.gender);
   };
 
   const updateProfile = async () => {
@@ -112,8 +101,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    document.body.classList.remove('theme-pink');
-    // Navigation will be handled by App.tsx routing
   };
 
   return (
